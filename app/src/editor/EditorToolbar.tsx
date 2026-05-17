@@ -22,6 +22,7 @@ import {
   Subscript,
 } from "lucide-react";
 
+import type { ReactNode, RefObject } from "react";
 import type { LatexEditorHandle } from "./LatexEditor";
 
 /** Snippet kinds that open a picker dialog instead of inserting directly,
@@ -30,7 +31,7 @@ export type SnippetKind = "link" | "image" | "table";
 
 type Props = {
   /** Lives in `App.tsx`. Methods are called imperatively. */
-  editor: React.RefObject<LatexEditorHandle | null>;
+  editor: RefObject<LatexEditorHandle | null>;
   /** True when there is no document open — the entire toolbar is hidden then. */
   disabled?: boolean;
   /** Open the parameterised snippet picker. */
@@ -232,7 +233,7 @@ function ToolButton({
 }: {
   title: string;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button

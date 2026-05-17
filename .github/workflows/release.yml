@@ -249,11 +249,11 @@ jobs:
               -f name="$newname" >/dev/null
           }
 
-          rename_asset "_x64_en-US\\.msi$"  "LaTeXStudio-${VERSION}-Windows-x64.msi"
-          rename_asset "_x64\\.dmg$"        "LaTeXStudio-${VERSION}-macOS-Intel.dmg"
-          rename_asset "_aarch64\\.dmg$"    "LaTeXStudio-${VERSION}-macOS-AppleSilicon.dmg"
-          rename_asset "_amd64\\.deb$"      "LaTeXStudio-${VERSION}-Linux-x64.deb"
-          rename_asset "x86_64\\.rpm$"      "LaTeXStudio-${VERSION}-Linux-x64.rpm"
+          rename_asset '_x64_en-US\\.msi$'  "LaTeXStudio-${VERSION}-Windows-x64.msi"
+          rename_asset '_x64\\.dmg$'        "LaTeXStudio-${VERSION}-macOS-Intel.dmg"
+          rename_asset '_aarch64\\.dmg$'    "LaTeXStudio-${VERSION}-macOS-AppleSilicon.dmg"
+          rename_asset '_amd64\\.deb$'      "LaTeXStudio-${VERSION}-Linux-x64.deb"
+          rename_asset 'x86_64\\.rpm$'      "LaTeXStudio-${VERSION}-Linux-x64.rpm"
 
       - name: Delete stray signature files the updater never consults
         env:
@@ -289,6 +289,6 @@ jobs:
             done
           }
 
-          delete_asset "\\.msi\\.sig$"
-          delete_asset "\\.deb\\.sig$"
-          delete_asset "\\.rpm\\.sig$"
+          delete_asset '\\.msi\\.sig$'
+          delete_asset '\\.deb\\.sig$'
+          delete_asset '\\.rpm\\.sig$'
