@@ -1,8 +1,21 @@
 # LaTeX Studio — Desktop
 
-The Tauri 2 + React + Rust desktop application for LaTeX Studio. This folder contains
-everything needed to develop, build, and package the desktop client. For
-high-level vision and the full roadmap, see [../Plan.md](../Plan.md).
+A modern, native desktop LaTeX editor for Windows, macOS and Linux —
+built on Tauri 2, React and Rust. Local-first, MIT licensed, no telemetry.
+
+**🌐 Website & downloads:** <https://bipul.in/LaTexStudio/>
+
+The website auto-detects your OS and architecture and points you straight
+at the right installer. For all variants (Windows MSI/NSIS, macOS Apple
+Silicon/Intel `.dmg`, Linux `.deb`/`.rpm`/AppImage), see the
+[Download section](https://bipul.in/LaTexStudio/#download)
+or the [latest GitHub Release](https://github.com/BipulRaman/LaTexStudio/releases/latest).
+
+---
+
+This repository contains everything needed to develop, build, and package
+the desktop client. For high-level vision and the full roadmap, see
+[app/Plan.md](app/Plan.md).
 
 ## Contents
 

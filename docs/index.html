@@ -105,6 +105,11 @@
       .hero-headline {
         background: linear-gradient(180deg, var(--fg) 60%, color-mix(in srgb, var(--fg) 55%, var(--accent) 45%) 100%);
         -webkit-background-clip: text; background-clip: text; color: transparent;
+        /* background-clip: text crops anything outside the glyph box; with a
+           tight line-height the gradient ends right at the baseline and
+           swallows descenders (y, p, g). Add a sliver of padding so the
+           painted region extends below the baseline. */
+        padding-bottom: 0.12em;
       }
       .ring-soft { box-shadow: 0 0 0 1px var(--border); }
       .ring-accent {
@@ -212,7 +217,7 @@
             Open source · Free forever
           </span>
 
-          <h1 class="mt-7 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.05] hero-headline">
+          <h1 class="mt-7 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.15] hero-headline">
             The desktop LaTeX editor<br />that gets out of your way.
           </h1>
 
