@@ -206,7 +206,10 @@ export function PdfViewer({
   return (
     <div className="flex flex-col h-full bg-bg">
       {/* Toolbar */}
-      <div className="h-9 shrink-0 border-b border-border bg-bg-elevated px-3 flex items-center gap-2 text-xs text-fg-muted">
+      <div
+        className="border-b border-border bg-bg-elevated px-3 flex items-center gap-2 text-xs text-fg-muted"
+        style={{ flex: "0 0 36px", height: 36 }}
+      >
         <span className="font-medium text-fg">Preview</span>
         {pdfPath && (
           <>

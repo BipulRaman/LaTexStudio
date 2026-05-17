@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 export type OutlineEntry = {
   level: number; // 0 = part, 1 = chapter, 2 = section, 3 = subsection, 4 = subsubsection, 5 = paragraph
@@ -117,6 +117,19 @@ export function Outline({
   onJump: (line: number) => void;
 }) {
   const entries = useMemo(() => parseOutline(text), [text]);
+  // Debounce clicks so the 2nd click of a double-click is ignored. Three
+  // back-to-back gotoLine dispatches were triggering a flex-reflow that
+  // collapsed the sibling top bars in WebView2.
+  const lastClickRef = useRef(0);
+  const handleClick = useCallback(
+    (line: number) => {
+      const now = performance.now();
+      if (now - lastClickRef.current < 400) return;
+      lastClickRef.current = now;
+      onJump(line);
+    },
+    [onJump],
+  );
 
   if (entries.length === 0) {
     return (
@@ -135,20 +148,10 @@ export function Outline({
         <li key={`${i}-${e.line}`}>
           <button
             type="button"
-            // tabIndex=-1 so clicking the button does not steal focus from the
-            // editor — the focus shift was triggering a WebView2 repaint glitch
-            // that occasionally hid the sidebar's Files/Outline tab strip.
             tabIndex={-1}
-            onClick={() => onJump(e.line)}
-            onDoubleClick={(ev) => {
-              ev.preventDefault();
-              onJump(e.line);
-            }}
-            onMouseDown={(ev) => {
-              // Always preventDefault on mousedown to suppress focus shift and
-              // any text-selection drag that bleeds across siblings in WebView2.
-              ev.preventDefault();
-            }}
+            onClick={() => handleClick(e.line)}
+            onDoubleClick={(ev) => ev.preventDefault()}
+            onMouseDown={(ev) => ev.preventDefault()}
             className="w-full text-left flex items-center gap-2 px-1 py-0.5 rounded hover:bg-bg-hover text-fg-muted hover:text-fg select-none"
             style={{ paddingLeft: 4 + (e.level - minLevel) * 10 }}
             title={`Line ${e.line}`}

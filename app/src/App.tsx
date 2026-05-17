@@ -16,6 +16,7 @@ import {
   PanelLeft,
   PanelBottom,
   Sparkles,
+  X,
 } from "lucide-react";
 import { fsApi } from "./api/fs";
 import { dialogApi } from "./api/dialog";
@@ -362,6 +363,18 @@ function App() {
     setStatus("New file");
   }
 
+  function handleCloseDoc() {
+    if (!activeDoc) return;
+    if (activeDoc.dirty) {
+      const ok = window.confirm(
+        "This file has unsaved changes. Close without saving?",
+      );
+      if (!ok) return;
+    }
+    setDoc(null);
+    setStatus("Closed");
+  }
+
   async function handleOpenFolder() {
     try {
       const path = await dialogApi.openFolder();
@@ -521,6 +534,9 @@ function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
         e.preventDefault();
         setShowLogPanel((v) => !v);
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        handleCloseDoc();
       } else if (e.key === "Escape" && paletteOpen) {
         setPaletteOpen(false);
       }
@@ -976,107 +992,106 @@ function App() {
           off-screen when the user shrinks the window. */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <main className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Floating "expand sidebar" affordance when collapsed. */}
-          {!showSidebar && (
-            <button
-              onClick={() => setShowSidebar(true)}
-              title="Show sidebar (Ctrl+B)"
-              className="absolute z-10 mt-10 ml-0 w-4 h-12 bg-bg-elevated border border-l-0 border-border rounded-r text-fg-muted hover:text-fg hover:bg-bg-hover flex items-center justify-center"
-              style={{ position: "fixed", left: 0, top: 36 }}
-            >
-              <PanelLeft className="h-3 w-3" />
-            </button>
-          )}
-          {/* Sidebar */}
-          {showSidebar && (
-            <aside
-              style={{ width: sidebarW }}
-              className="shrink-0 bg-bg-panel flex flex-col text-sm overflow-hidden"
-            >
-              <div className="h-9 shrink-0 flex items-stretch border-b border-border text-[11px] select-none">
-                <SidebarTab active={sidebarTab === "files"} onClick={() => setSidebarTab("files")}>
-                  Files
-                </SidebarTab>
-                <SidebarTab active={sidebarTab === "outline"} onClick={() => setSidebarTab("outline")}>
-                  Outline
-                </SidebarTab>
-              </div>
-              <div className="flex-1 overflow-auto px-1 py-2">
-                {sidebarTab === "files" ? (
-                  rootDir ? (
-                    <Tree
-                      root={rootDir}
-                      refreshToken={treeRefreshToken}
-                      onOpenFile={(p) => void openFileByPath(p)}
-                      onSetRootDoc={(p) => {
-                        setRootDoc(p);
-                        setStatus(`Build root set to ${p}`);
-                      }}
-                      selectedPath={activeDoc?.path ?? null}
-                      rootDocPath={rootDoc}
-                    />
-                  ) : (
-                    <div className="px-3 py-6 flex flex-col items-center text-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-bg-elevated border border-border flex items-center justify-center">
-                        <FolderOpen className="h-5 w-5 text-accent" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-xs text-fg font-medium">Nothing open</div>
-                        <p className="text-[11px] text-fg-subtle leading-snug">
-                          Open a folder to browse a project, or open a single
-                          LaTeX file.
-                        </p>
-                      </div>
-                      <div className="mt-1 flex flex-col gap-1.5 w-full px-2">
-                        <button
-                          onClick={handleOpenFolder}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded border border-border bg-bg-elevated hover:border-accent/50 hover:bg-bg-hover text-fg transition-colors"
-                        >
-                          <FolderOpen className="h-3.5 w-3.5 text-accent" />
-                          Open folder…
-                          <span className="ml-auto text-[10px] text-fg-subtle">Ctrl+Shift+O</span>
-                        </button>
-                        <button
-                          onClick={handleOpenFile}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded border border-border bg-bg-elevated hover:border-accent/50 hover:bg-bg-hover text-fg transition-colors"
-                        >
-                          <FileUp className="h-3.5 w-3.5 text-accent" />
-                          Open file…
-                          <span className="ml-auto text-[10px] text-fg-subtle">Ctrl+O</span>
-                        </button>
-                      </div>
-                    </div>
-                  )
-                ) : activeDoc ? (
-                  <Outline
-                    text={activeDoc.contents}
-                    onJump={(line) => editorRef.current?.gotoLine(line)}
-                  />
-                ) : (
-                  <div className="px-3 py-2 italic text-fg-subtle text-xs">No file open</div>
+          {(() => {
+            // The sidebar is only useful when there is something to show in it:
+            // a folder enables the Files tree, an open file enables the Outline.
+            const showFilesTab = !!rootDir;
+            const showOutlineTab = !!activeDoc;
+            const sidebarAvailable = showFilesTab || showOutlineTab;
+            // If the currently selected tab isn't available, fall back to the
+            // one that is so the content area is never empty.
+            const effectiveTab =
+              sidebarTab === "files" && !showFilesTab
+                ? "outline"
+                : sidebarTab === "outline" && !showOutlineTab
+                ? "files"
+                : sidebarTab;
+            const sidebarVisible = sidebarAvailable && showSidebar;
+            return (
+              <>
+                {/* Floating "expand sidebar" affordance when collapsed (only
+                    if there is something to show). */}
+                {sidebarAvailable && !showSidebar && (
+                  <button
+                    onClick={() => setShowSidebar(true)}
+                    title="Show sidebar (Ctrl+B)"
+                    className="absolute z-10 mt-10 ml-0 w-4 h-12 bg-bg-elevated border border-l-0 border-border rounded-r text-fg-muted hover:text-fg hover:bg-bg-hover flex items-center justify-center"
+                    style={{ position: "fixed", left: 0, top: 36 }}
+                  >
+                    <PanelLeft className="h-3 w-3" />
+                  </button>
                 )}
-              </div>
-              {rootDoc && (
-                <div
-                  className="h-7 shrink-0 border-t border-border px-3 flex items-center text-[11px] text-fg-muted truncate"
-                  title={rootDoc}
-                >
-                  <span className="text-fg-subtle">root:</span>
-                  <span className="text-accent ml-1 truncate">{rootDoc.split(/[\\/]/).pop()}</span>
-                </div>
-              )}
-            </aside>
-          )}
-          {showSidebar && (
-            <Splitter
-              direction="vertical"
-              size={sidebarW}
-              onResize={setSidebarW}
-              min={160}
-              max={560}
-              trailing
-            />
-          )}
+                {/* Sidebar */}
+                {sidebarVisible && (
+                  <aside
+                    style={{ width: sidebarW }}
+                    className="shrink-0 bg-bg-panel flex flex-col text-sm overflow-hidden"
+                  >
+                    <div
+                      className="flex items-stretch border-b border-border text-[11px] select-none"
+                      style={{ flex: "0 0 36px", height: 36 }}
+                    >
+                      {showFilesTab && (
+                        <SidebarTab
+                          active={effectiveTab === "files"}
+                          onClick={() => setSidebarTab("files")}
+                        >
+                          Files
+                        </SidebarTab>
+                      )}
+                      {showOutlineTab && (
+                        <SidebarTab
+                          active={effectiveTab === "outline"}
+                          onClick={() => setSidebarTab("outline")}
+                        >
+                          Outline
+                        </SidebarTab>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-auto px-1 py-2">
+                      {effectiveTab === "files" && rootDir ? (
+                        <Tree
+                          root={rootDir}
+                          refreshToken={treeRefreshToken}
+                          onOpenFile={(p) => void openFileByPath(p)}
+                          onSetRootDoc={(p) => {
+                            setRootDoc(p);
+                            setStatus(`Build root set to ${p}`);
+                          }}
+                          selectedPath={activeDoc?.path ?? null}
+                          rootDocPath={rootDoc}
+                        />
+                      ) : effectiveTab === "outline" && activeDoc ? (
+                        <Outline
+                          text={activeDoc.contents}
+                          onJump={(line) => editorRef.current?.gotoLine(line)}
+                        />
+                      ) : null}
+                    </div>
+                    {rootDoc && (
+                      <div
+                        className="h-7 shrink-0 border-t border-border px-3 flex items-center text-[11px] text-fg-muted truncate"
+                        title={rootDoc}
+                      >
+                        <span className="text-fg-subtle">root:</span>
+                        <span className="text-accent ml-1 truncate">{rootDoc.split(/[\\/]/).pop()}</span>
+                      </div>
+                    )}
+                  </aside>
+                )}
+                {sidebarVisible && (
+                  <Splitter
+                    direction="vertical"
+                    size={sidebarW}
+                    onResize={setSidebarW}
+                    min={160}
+                    max={560}
+                    trailing
+                  />
+                )}
+              </>
+            );
+          })()}
 
           {/* Editor */}
           <section className="flex-1 min-w-0 bg-bg flex flex-col">
@@ -1086,6 +1101,8 @@ function App() {
               onBuild={handleBuild}
               onCancel={handleCancelBuild}
               canBuild={!!activeDoc}
+              canClose={!!activeDoc}
+              onClose={handleCloseDoc}
             />
             {activeDoc ? (
               <LatexEditor
@@ -1275,19 +1292,36 @@ function DocHeader({
   onBuild,
   onCancel,
   canBuild,
+  canClose,
+  onClose,
 }: {
   docLabel: string;
   buildPhase: "idle" | "running" | "success" | "failed" | "cancelled";
   onBuild: () => void;
   onCancel: () => void;
   canBuild: boolean;
+  canClose: boolean;
+  onClose: () => void;
 }) {
   return (
-    <div className="h-9 shrink-0 border-b border-border bg-bg-elevated px-3 flex items-center gap-2 text-xs">
+    <div
+      className="border-b border-border bg-bg-elevated px-3 flex items-center gap-2 text-xs"
+      style={{ flex: "0 0 36px", height: 36 }}
+    >
       <FileText className="h-3.5 w-3.5 text-fg-subtle shrink-0" />
-      <span className="truncate text-fg" title={docLabel}>
+      <span className="truncate text-fg min-w-0" title={docLabel}>
         {docLabel}
       </span>
+      {canClose && (
+        <button
+          onClick={onClose}
+          className="shrink-0 p-1 -ml-0.5 rounded text-fg-subtle hover:text-fg hover:bg-bg-hover transition-colors"
+          title="Close file (Ctrl+W)"
+          aria-label="Close file"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="ml-auto flex items-center gap-1">
         {buildPhase === "running" ? (
           <button

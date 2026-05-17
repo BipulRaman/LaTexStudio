@@ -110,11 +110,21 @@ export const LatexEditor = forwardRef<LatexEditorHandle, LatexEditorProps>(
           const total = view.state.doc.lines;
           const clamped = Math.max(1, Math.min(line, total));
           const pos = view.state.doc.line(clamped).from;
-          view.dispatch({
-            selection: { anchor: pos },
-            effects: EditorView.scrollIntoView(pos, { y: "center" }),
+          // Move the cursor without using the EditorView.scrollIntoView
+          // effect — that effect can call Element.scrollIntoView on the
+          // editor's outer element, which in WebView2 sometimes bubbles up
+          // and triggers a parent flexbox reflow that collapses the sibling
+          // h-9 top bars. We scroll the editor's own .cm-scroller manually
+          // on the next frame so the dispatch settles first.
+          view.dispatch({ selection: { anchor: pos } });
+          requestAnimationFrame(() => {
+            const v = cmRef.current?.view;
+            if (!v) return;
+            const block = v.lineBlockAt(pos);
+            const scroller = v.scrollDOM;
+            const target = block.top - scroller.clientHeight / 2 + block.height / 2;
+            scroller.scrollTo({ top: Math.max(0, target) });
           });
-          view.focus();
         },
         insert(text) {
           const view = cmRef.current?.view;
@@ -149,30 +159,32 @@ export const LatexEditor = forwardRef<LatexEditorHandle, LatexEditorProps>(
     );
 
     return (
-      <CodeMirror
-        ref={cmRef}
-        value={value}
-        onChange={onChange}
-        extensions={extensions}
-        readOnly={readOnly}
-        basicSetup={{
-          lineNumbers: true,
-          highlightActiveLine: true,
-          highlightActiveLineGutter: true,
-          foldGutter: true,
-          bracketMatching: false, // we add our own extension above
-          closeBrackets: false,
-          autocompletion: false,
-          history: true,
-          drawSelection: true,
-          dropCursor: true,
-          indentOnInput: true,
-          syntaxHighlighting: false,
-          searchKeymap: false,
-        }}
-        theme="none"
-        style={{ height: "100%", width: "100%" }}
-      />
+      <div className="flex-1 min-h-0 min-w-0 relative">
+        <CodeMirror
+          ref={cmRef}
+          value={value}
+          onChange={onChange}
+          extensions={extensions}
+          readOnly={readOnly}
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLine: true,
+            highlightActiveLineGutter: true,
+            foldGutter: true,
+            bracketMatching: false, // we add our own extension above
+            closeBrackets: false,
+            autocompletion: false,
+            history: true,
+            drawSelection: true,
+            dropCursor: true,
+            indentOnInput: true,
+            syntaxHighlighting: false,
+            searchKeymap: false,
+          }}
+          theme="none"
+          style={{ position: "absolute", inset: 0 }}
+        />
+      </div>
     );
   },
 );
