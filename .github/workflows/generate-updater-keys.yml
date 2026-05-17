@@ -56,9 +56,12 @@ jobs:
           set -e
           mkdir -p out
           # `tauri signer generate` is interactive — it prompts twice for the
-          # passphrase. Feed it via stdin.
-          printf '%s\n%s\n' "$PASSPHRASE" "$PASSPHRASE" \
+          # passphrase. Write it to a temp file (no shell interpretation of
+          # '%', '\', etc.) and pipe that into the CLI.
+          printf '%s' "$PASSPHRASE" > out/.pw
+          { cat out/.pw; echo; cat out/.pw; echo; } \
             | npx @tauri-apps/cli signer generate -w out/key
+          rm -f out/.pw
 
           # `-w out/key` writes BOTH files: out/key (private) and out/key.pub (public)
           PUB="$(cat out/key.pub)"
