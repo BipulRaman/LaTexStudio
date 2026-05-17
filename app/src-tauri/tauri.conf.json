@@ -47,7 +47,7 @@
       "endpoints": [
         "https://github.com/BipulRaman/LaTexStudio/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdDNzZGNEVFMUY0ODlBNQpSV1NsaWZUaFRtL0hCMmxpMWp6eHlVaDFuNDdCNXIvRFVnbUZlMlNCNzhIakJsWFhGODlCTEU0Ugo=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIxOTkyM0Y1RjBGNUI3RjkKUldUNXQvWHc5U09aSWNDbTJyenJvVXRPdm9yMkw3Q1JsQTNmNytOaXJhNnNNa0pCUlNNaUtkN1YK",
       "windows": {
         "installMode": "passive"
       }
