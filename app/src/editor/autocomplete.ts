@@ -39,7 +39,7 @@ export function latexCompletions(context: CompletionContext): CompletionResult |
         detail: c.title ?? c.file.split(/[\\/]/).pop(),
         info: c.title,
       })),
-      validFor: /^[\w:.\-]*$/,
+      validFor: /^[\w:.-]*$/,
     };
   }
 
@@ -56,7 +56,7 @@ export function latexCompletions(context: CompletionContext): CompletionResult |
         type: "variable",
         detail: `${l.file.split(/[\\/]/).pop()}:${l.line}`,
       })),
-      validFor: /^[\w:.\-]*$/,
+      validFor: /^[\w:.-]*$/,
     };
   }
 

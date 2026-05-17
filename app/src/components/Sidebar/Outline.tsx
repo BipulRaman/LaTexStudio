@@ -38,7 +38,7 @@ const RE_CUSTOM_ENV =
 
 // Magic `% Section: Foo` / `%%% Foo` style fold markers. Pragmatic fallback
 // when a doc has no real headings at all.
-const RE_MAGIC = /^\s*%\s*!?(?:Section|SECTION)\s*[:\-]\s*(.+)$/;
+const RE_MAGIC = /^\s*%\s*!?(?:Section|SECTION)\s*[:-]\s*(.+)$/;
 
 export function parseOutline(text: string): OutlineEntry[] {
   const out: OutlineEntry[] = [];

@@ -1,9 +1,9 @@
+import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { Minus, Plus, ZoomIn, FileX, Loader2 } from "lucide-react";
 
 // PDF.js worker setup — Vite resolves this to a hashed URL.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 

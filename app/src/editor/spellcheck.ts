@@ -36,7 +36,7 @@ const misspelledField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-const WORD_RE = /[A-Za-z][A-Za-z'’\-]{2,}/g;
+const WORD_RE = /[A-Za-z][A-Za-z'’-]{2,}/g;
 
 // LaTeX-aware ranges we should skip:
 // - line comments (`%` to end-of-line, unless escaped as `\%`)
