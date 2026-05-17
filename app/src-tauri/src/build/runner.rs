@@ -12,7 +12,6 @@ use tokio::sync::oneshot;
 use crate::build::engine::Engine;
 use crate::build::log_parser::{self, Diagnostic};
 use crate::errors::{AppError, AppResult};
-use crate::paths;
 
 #[derive(Debug, Default)]
 pub struct BuildState {
@@ -81,7 +80,11 @@ pub async fn compile_latex(
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| PathBuf::from("."));
 
-    let out_dir = paths::build_dir(&app, &project_root)?;
+    // Write build outputs (PDF, .log, .aux, .synctex.gz, etc.) next to the
+    // source .tex file rather than into the app data directory, so users can
+    // find / share / version-control the artifacts alongside the source.
+    let out_dir = project_root.clone();
+    std::fs::create_dir_all(&out_dir).ok();
 
     let chosen = engine
         .as_deref()
