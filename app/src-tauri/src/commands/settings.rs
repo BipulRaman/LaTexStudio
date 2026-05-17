@@ -25,7 +25,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            theme: "dark".into(),
+            theme: "light".into(),
             engine: "tectonic".into(),
             build_on_save: true,
             spell_lang: "en_US".into(),

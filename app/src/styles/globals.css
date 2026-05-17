@@ -16,6 +16,18 @@
     --c-fg-subtle: 130 137 152;
     --c-accent: 56 110 230;
     --c-accent-hover: 35 92 218;
+
+    /* LaTeX syntax palette — saturated, high-contrast on white. */
+    --c-syn-keyword: #7c3aed;   /* \documentclass, \begin, … (control words) */
+    --c-syn-builtin: #1d4ed8;   /* package/env names, atoms */
+    --c-syn-string: #047857;    /* string literals */
+    --c-syn-number: #b45309;    /* numbers */
+    --c-syn-comment: #64748b;   /* % comments */
+    --c-syn-meta: #1e40af;      /* meta */
+    --c-syn-emphasis: #92400e;  /* \emph, \textbf */
+    --c-syn-heading: #be185d;   /* sections */
+    --c-syn-link: #1d4ed8;      /* URLs */
+    --c-syn-invalid: #b91c1c;   /* errors */
   }
 
   .dark {
@@ -30,6 +42,18 @@
     --c-fg-subtle: 107 114 128;
     --c-accent: 122 162 255;
     --c-accent-hover: 143 177 255;
+
+    /* LaTeX syntax palette — pastel, easy on dark background. */
+    --c-syn-keyword: #c792ea;
+    --c-syn-builtin: #82aaff;
+    --c-syn-string: #6dbf6d;
+    --c-syn-number: #d97742;
+    --c-syn-comment: #8a93a6;
+    --c-syn-meta: #5b8def;
+    --c-syn-emphasis: #c98a00;
+    --c-syn-heading: #d6536d;
+    --c-syn-link: #5b8def;
+    --c-syn-invalid: #ef4444;
   }
 
   html,

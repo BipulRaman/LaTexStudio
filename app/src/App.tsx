@@ -44,6 +44,7 @@ const PdfViewer = lazy(() =>
 import { CommandPalette, type PaletteCommand } from "./components/CommandPalette";
 import { ToastHost } from "./components/Toast/ToastHost";
 import { TectonicInstaller } from "./components/TectonicInstaller";
+import { AboutDialog } from "./components/AboutDialog";
 import { MenuBar, type TopMenu } from "./components/MenuBar/MenuBar";
 import type { MenuEntry as MenuEntryAlias } from "./components/MenuBar/MenuBar";
 import { Splitter } from "./components/Splitter";
@@ -78,7 +79,7 @@ function App() {
   const [availableEngines, setAvailableEngines] = useState<Engine[]>([]);
   const [buildOnSave, setBuildOnSave] = useState<boolean>(true);
   const [spellLang, setSpellLang] = useState<string | undefined>(undefined);
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [theme, setTheme] = useState<ThemeMode>("light");
   useThemeEffect(theme);
 
   const rootDir = useWorkspace((s) => s.rootDir);
@@ -104,6 +105,7 @@ function App() {
   const syncTokenRef = useRef(0);
   const [sidebarTab, setSidebarTab] = useState<"files" | "outline">("files");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState<boolean>(() => {
     const v = localStorage.getItem("layout:showSidebar");
     return v === null ? true : v === "1";
@@ -1085,7 +1087,7 @@ function App() {
           {
             kind: "item",
             label: "&About LaTeX Studio",
-            onClick: () => toast.info(`LaTeX Studio v${version}`, 4000),
+            onClick: () => setAboutOpen(true),
           },
         ],
       },
@@ -1333,6 +1335,11 @@ function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         commands={paletteCommands}
+      />
+      <AboutDialog
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        version={version}
       />
       <TectonicInstaller
         open={tectonicOpen}

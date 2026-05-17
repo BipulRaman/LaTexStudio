@@ -3,18 +3,19 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import type { Extension } from "@codemirror/state";
 
-/** Syntax colors — kept consistent across light/dark; chrome uses CSS vars. */
+/** Syntax colors — sourced from CSS variables so they auto-switch
+ *  between the light/dark palettes defined in globals.css. */
 const syntax = {
-  keyword: "#c792ea",
-  builtin: "#82aaff",
-  string: "#3e8c3a",
-  number: "#d97742",
-  comment: "#8a93a6",
-  meta: "#5b8def",
-  emphasis: "#c98a00",
-  heading: "#d6536d",
-  link: "#5b8def",
-  invalid: "#ef4444",
+  keyword: "var(--c-syn-keyword)",
+  builtin: "var(--c-syn-builtin)",
+  string: "var(--c-syn-string)",
+  number: "var(--c-syn-number)",
+  comment: "var(--c-syn-comment)",
+  meta: "var(--c-syn-meta)",
+  emphasis: "var(--c-syn-emphasis)",
+  heading: "var(--c-syn-heading)",
+  link: "var(--c-syn-link)",
+  invalid: "var(--c-syn-invalid)",
 };
 
 export const latexEditorTheme: Extension = EditorView.theme(
