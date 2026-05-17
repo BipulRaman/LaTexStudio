@@ -1,0 +1,146 @@
+name: CI
+
+# Build & lint check on every push to main and on pull requests targeting main.
+# Does NOT produce installers and does NOT create releases — just verifies
+# that the frontend and the Rust/Tauri backend compile cleanly on all
+# supported platforms.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (lint + typecheck + build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Lint
+        working-directory: app
+        run: npm run lint --if-present
+
+      - name: Build (tsc + vite)
+        working-directory: app
+        run: npm run build
+
+  backend:
+    name: Backend (${{ matrix.platform.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: windows-x86_64
+            os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+          - name: macos-aarch64
+            os: macos-latest
+            rust-target: aarch64-apple-darwin
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            build-essential \
+            curl \
+            wget \
+            file
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.rust-target }}
+          components: clippy, rustfmt
+
+      - name: Rust build cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri -> target
+          key: ci-${{ matrix.platform.rust-target }}
+
+      - name: Install frontend dependencies
+        working-directory: app
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend (required by tauri-build)
+        working-directory: app
+        run: npm run build
+
+      - name: cargo fmt --check
+        working-directory: app/src-tauri
+        run: cargo fmt --all -- --check
+        continue-on-error: true
+
+      - name: cargo clippy
+        working-directory: app/src-tauri
+        run: cargo clippy --target ${{ matrix.platform.rust-target }} --all-targets -- -D warnings
+        continue-on-error: true
+
+      - name: cargo build (no bundle)
+        working-directory: app/src-tauri
+        run: cargo build --target ${{ matrix.platform.rust-target }} --locked
+
+      - name: cargo test
+        working-directory: app/src-tauri
+        run: cargo test --target ${{ matrix.platform.rust-target }} --locked --no-fail-fast
