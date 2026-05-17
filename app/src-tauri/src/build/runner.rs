@@ -86,7 +86,7 @@ pub async fn compile_latex(
     let chosen = engine
         .as_deref()
         .and_then(Engine::from_str_ci)
-        .unwrap_or(Engine::Latexmk);
+        .unwrap_or(Engine::Tectonic);
 
     let job_id = uuid::Uuid::new_v4().to_string();
 
@@ -137,7 +137,7 @@ pub async fn compile_latex(
                 AppError::Other(format!(
                     "'{}' is not installed or not on PATH. Install a TeX distribution \
                      (MiKTeX, TeX Live, or Tectonic — Tectonic can be installed from the \
-                     warning toast inside LatApp) and restart.",
+                     warning toast inside LaTeX Studio) and restart.",
                     chosen.binary()
                 ))
             }

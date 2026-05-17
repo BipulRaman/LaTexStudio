@@ -57,7 +57,7 @@ Build a desktop LaTeX editor that feels as polished as TeXstudio / Overleaf / VS
 ## Repository Layout (after scaffold)
 
 ```
-LatApp/
+LaTeX Studio/
 ├─ src/                         # React frontend
 │  ├─ main.tsx
 │  ├─ App.tsx

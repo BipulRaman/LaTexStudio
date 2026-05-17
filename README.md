@@ -1,6 +1,6 @@
-# LatApp — Desktop
+# LaTeX Studio — Desktop
 
-The Tauri 2 + React + Rust desktop application for LatApp. This folder contains
+The Tauri 2 + React + Rust desktop application for LaTeX Studio. This folder contains
 everything needed to develop, build, and package the desktop client. For
 high-level vision and the full roadmap, see [../Plan.md](../Plan.md).
 
@@ -86,12 +86,12 @@ Bundler outputs land under `src-tauri/target/release/bundle/`:
 
 | Platform | Artifact                                       |
 | -------- | ---------------------------------------------- |
-| Windows  | `msi/LatApp_<ver>_x64_en-US.msi`, `nsis/LatApp_<ver>_x64-setup.exe` |
+| Windows  | `msi/LaTeX Studio_<ver>_x64_en-US.msi`, `nsis/LaTeX Studio_<ver>_x64-setup.exe` |
 | macOS    | `dmg/*.dmg`, `macos/*.app`                     |
 | Linux    | `appimage/*.AppImage`, `deb/*.deb`             |
 
 The unpacked release binary (no installer needed for local testing) is at
-`src-tauri/target/release/latapp.exe` on Windows (or `latapp` on
+`src-tauri/target/release/latex_studio.exe` on Windows (or `latex_studio` on
 macOS/Linux).
 
 Last verified Windows build: MSI ≈ 9.4 MB, NSIS ≈ 6.4 MB, standalone exe
@@ -99,7 +99,7 @@ Last verified Windows build: MSI ≈ 9.4 MB, NSIS ≈ 6.4 MB, standalone exe
 
 ## Enable spellcheck
 
-LatApp ships without dictionaries by default. Drop a matching pair of
+LaTeX Studio ships without dictionaries by default. Drop a matching pair of
 Hunspell files into `src-tauri/resources/dictionaries/`:
 
 ```

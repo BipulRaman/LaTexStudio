@@ -50,7 +50,7 @@ export function MenuBar({ menus }: Props) {
       if (barRef.current?.contains(target)) return;
       // Dropdowns are rendered into document.body via a portal — exclude any
       // click that lands inside one (or its submenus).
-      if (target.closest("[data-latapp-menu]")) return;
+      if (target.closest("[data-latex-studio-menu]")) return;
       setOpenIndex(null);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -205,7 +205,7 @@ function Dropdown({
       ref={ref}
       style={style}
       role="menu"
-      data-latapp-menu="true"
+      data-latex-studio-menu="true"
       className="z-[1000] min-w-[14rem] max-w-[26rem] bg-bg-elevated border border-border rounded-md shadow-2xl py-1 text-xs"
     >
       {items.map((item, i) => {

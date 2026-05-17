@@ -67,7 +67,8 @@ const STARTER_DOC = `\\documentclass{article}
 function App() {
   const [version, setVersion] = useState<string>("…");
   const [status, setStatus] = useState<string>("Ready");
-  const [engine, setEngine] = useState<Engine>("latexmk");
+  const [engine, setEngine] = useState<Engine>("tectonic");
+  const [availableEngines, setAvailableEngines] = useState<Engine[]>([]);
   const [buildOnSave, setBuildOnSave] = useState<boolean>(true);
   const [spellLang, setSpellLang] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<ThemeMode>("dark");
@@ -98,17 +99,14 @@ function App() {
     const v = localStorage.getItem("layout:showSidebar");
     return v === null ? true : v === "1";
   });
-  const [showLogPanel, setShowLogPanel] = useState<boolean>(() => {
-    const v = localStorage.getItem("layout:showLogPanel");
-    return v === null ? true : v === "1";
-  });
+  const [showLogPanel, setShowLogPanel] = useState<boolean>(false);
   useEffect(() => {
     localStorage.setItem("layout:showSidebar", showSidebar ? "1" : "0");
   }, [showSidebar]);
-  useEffect(() => {
-    localStorage.setItem("layout:showLogPanel", showLogPanel ? "1" : "0");
-  }, [showLogPanel]);
   const [tectonicOpen, setTectonicOpen] = useState(false);
+  // When true, the installer cannot be dismissed — used when boot probe finds
+  // no LaTeX engine on the system. Cleared once Tectonic is installed.
+  const [tectonicRequired, setTectonicRequired] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
 
   // Resizable layout sizes (pixels), persisted to localStorage.
@@ -143,35 +141,28 @@ function App() {
       .catch(() => setVersion("unknown"));
   }, []);
 
-  // Probe TeX engines on boot — warn loudly if none are installed so the user
-  // knows the prerequisite is missing rather than getting cryptic build errors.
-  useEffect(() => {
-    buildApi
-      .probeEngines()
-      .then((infos) => {
-        const available = infos.filter((i) => i.available);
-        if (available.length === 0) {
-          toast.error(
-            "No LaTeX engine found. Click 'Install Tectonic' below for a one-time ~20 MB download, or install MiKTeX/TeX Live system-wide.",
-            null,
-          );
-          // Auto-open the installer dialog so the fix is one click away.
-          setTectonicOpen(true);
-          setStatus("No LaTeX engine — install Tectonic to get started");
-        } else {
-          // If the persisted engine isn't available, fall back to the first one that is.
-          const cur = useEngineRef.current;
-          if (!available.some((i) => i.engine === cur)) {
-            setEngine(available[0].engine);
-            toast.warning(
-              `${cur} not found — switched to ${available[0].engine}`,
-              5000,
-            );
-          }
-        }
-      })
-      .catch(() => {});
+  // Probe TeX engines on boot — if none are installed, open the Tectonic
+  // installer dialog in required (non-dismissible) mode. No toast is shown
+  // because the modal itself surfaces the problem.
+  const probeAndRecord = useCallback(async () => {
+    try {
+      const infos = await buildApi.probeEngines();
+      const available = infos.filter((i) => i.available).map((i) => i.engine);
+      setAvailableEngines(available);
+      if (available.length === 0) {
+        setTectonicRequired(true);
+        setTectonicOpen(true);
+        setStatus("No LaTeX engine — install Tectonic to get started");
+      }
+      return available;
+    } catch {
+      return [] as Engine[];
+    }
   }, []);
+
+  useEffect(() => {
+    void probeAndRecord();
+  }, [probeAndRecord]);
 
   // Track the latest engine value so the probe effect can read it without re-running.
   const useEngineRef = useRef(engine);
@@ -665,7 +656,7 @@ function App() {
       ...(["latexmk", "pdflatex", "xelatex", "lualatex", "tectonic"] as const).map((e) => ({
         id: `engine.${e}`,
         category: "Engine",
-        label: `Use ${e}`,
+        label: `Use ${e}${availableEngines.includes(e) ? "" : " (not installed)"}`,
         run: () => setEngine(e),
       })),
       {
@@ -693,7 +684,7 @@ function App() {
         run: () => setTheme(t),
       })),
     ],
-    [buildOnSave],
+    [buildOnSave, availableEngines],
   );
 
   const menus: TopMenu[] = useMemo(() => {
@@ -910,7 +901,7 @@ function App() {
             items: [
               ...(["latexmk", "pdflatex", "xelatex", "lualatex", "tectonic"] as const).map<MenuEntryAlias>((e) => ({
                 kind: "item" as const,
-                label: e,
+                label: `${e}${availableEngines.includes(e) ? "" : " (not installed)"}`,
                 checked: engine === e,
                 onClick: () => setEngine(e),
               })),
@@ -926,12 +917,11 @@ function App() {
             kind: "item",
             label: "&Probe Engines…",
             onClick: async () => {
-              const infos = await buildApi.probeEngines();
-              const av = infos.filter((i) => i.available);
+              const av = await probeAndRecord();
               if (av.length === 0) toast.error("No LaTeX engines found", null);
               else
                 toast.success(
-                  `Found: ${av.map((i) => i.engine).join(", ")}`,
+                  `Found: ${av.join(", ")}`,
                   6000,
                 );
             },
@@ -959,8 +949,8 @@ function App() {
           { kind: "separator" },
           {
             kind: "item",
-            label: "&About LatApp",
-            onClick: () => toast.info(`LatApp v${version}`, 4000),
+            label: "&About LaTeX Studio",
+            onClick: () => toast.info(`LaTeX Studio v${version}`, 4000),
           },
         ],
       },
@@ -976,6 +966,7 @@ function App() {
     buildOnSave,
     buildPhase,
     version,
+    availableEngines,
   ]);
 
   return (
@@ -1025,14 +1016,35 @@ function App() {
                       rootDocPath={rootDoc}
                     />
                   ) : (
-                    <div className="px-3 py-2 text-xs text-fg-subtle space-y-2">
-                      <div className="italic">No folder open</div>
-                      <button
-                        onClick={handleOpenFolder}
-                        className="text-accent hover:text-accent-hover underline"
-                      >
-                        Open a folder…
-                      </button>
+                    <div className="px-3 py-6 flex flex-col items-center text-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-bg-elevated border border-border flex items-center justify-center">
+                        <FolderOpen className="h-5 w-5 text-accent" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-xs text-fg font-medium">Nothing open</div>
+                        <p className="text-[11px] text-fg-subtle leading-snug">
+                          Open a folder to browse a project, or open a single
+                          LaTeX file.
+                        </p>
+                      </div>
+                      <div className="mt-1 flex flex-col gap-1.5 w-full px-2">
+                        <button
+                          onClick={handleOpenFolder}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded border border-border bg-bg-elevated hover:border-accent/50 hover:bg-bg-hover text-fg transition-colors"
+                        >
+                          <FolderOpen className="h-3.5 w-3.5 text-accent" />
+                          Open folder…
+                          <span className="ml-auto text-[10px] text-fg-subtle">Ctrl+Shift+O</span>
+                        </button>
+                        <button
+                          onClick={handleOpenFile}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded border border-border bg-bg-elevated hover:border-accent/50 hover:bg-bg-hover text-fg transition-colors"
+                        >
+                          <FileUp className="h-3.5 w-3.5 text-accent" />
+                          Open file…
+                          <span className="ml-auto text-[10px] text-fg-subtle">Ctrl+O</span>
+                        </button>
+                      </div>
                     </div>
                   )
                 ) : activeDoc ? (
@@ -1090,6 +1102,9 @@ function App() {
                 onOpenFile={handleOpenFile}
                 onOpenFolder={handleOpenFolder}
                 onPalette={() => setPaletteOpen(true)}
+                availableEngines={availableEngines}
+                currentEngine={engine}
+                onInstallTectonic={() => setTectonicOpen(true)}
               />
             )}
           </section>
@@ -1173,7 +1188,6 @@ function App() {
           <Keyboard className="h-3 w-3" />
           <span className="hidden md:inline ml-1">⌘P</span>
         </StatusBtn>
-        <span className="px-2" title="Engine">{engine}</span>
         <span className="px-2" title="Spellcheck">{spellLang ? `spell: ${spellLang}` : "spell: off"}</span>
         <span className="px-2" title="App version">v{version}</span>
       </footer>
@@ -1185,9 +1199,11 @@ function App() {
       />
       <TectonicInstaller
         open={tectonicOpen}
+        required={tectonicRequired}
         onClose={() => setTectonicOpen(false)}
         onInstalled={(path, version) => {
           setEngine("tectonic");
+          setTectonicRequired(false);
           toast.success(`Tectonic ${version ?? ""} installed → ${path}`, 6000);
           setStatus("Tectonic ready");
         }}
@@ -1330,11 +1346,17 @@ function EmptyState({
   onOpenFile,
   onOpenFolder,
   onPalette,
+  availableEngines,
+  currentEngine,
+  onInstallTectonic,
 }: {
   onNewFile: () => void;
   onOpenFile: () => void;
   onOpenFolder: () => void;
   onPalette: () => void;
+  availableEngines: Engine[];
+  currentEngine: Engine;
+  onInstallTectonic: () => void;
 }) {
   const Item = ({
     icon,
@@ -1389,11 +1411,47 @@ function EmptyState({
             onClick={onPalette}
           />
         </div>
-        <p className="mt-6 text-[11px] text-fg-subtle leading-relaxed">
-          Tip: install a TeX distribution (MiKTeX, TeX Live, or Tectonic) so the
-          <span className="text-fg-muted"> Build </span>
-          command can compile your document.
-        </p>
+        <div className="mt-6 text-[11px] text-fg-subtle leading-relaxed space-y-1">
+          {availableEngines.length > 0 ? (
+            <>
+              <p>
+                Installed LaTeX engines:{" "}
+                {availableEngines.map((e, i) => (
+                  <span key={e}>
+                    <span
+                      className={e === currentEngine ? "text-accent" : "text-fg-muted"}
+                    >
+                      {e}
+                      {e === currentEngine ? " (active)" : ""}
+                    </span>
+                    {i < availableEngines.length - 1 ? ", " : ""}
+                  </span>
+                ))}
+                .
+              </p>
+              <p>
+                Switch the engine any time from
+                <span className="text-fg-muted"> Build › Engine</span>.
+              </p>
+            </>
+          ) : (
+            <p>
+              No LaTeX engine detected on this system. Install a TeX distribution
+              (MiKTeX, TeX Live) so the
+              <span className="text-fg-muted"> Build </span>
+              command can compile your document, or{" "}
+              <button
+                type="button"
+                onClick={onInstallTectonic}
+                className="text-accent hover:underline"
+              >
+                install Tectonic now
+              </button>
+              . Engines are selectable from
+              <span className="text-fg-muted"> Build › Engine</span>.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

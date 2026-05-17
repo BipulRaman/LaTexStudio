@@ -1972,7 +1972,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "latapp"
+name = "latex_studio"
 version = "0.1.0"
 dependencies = [
  "chrono",

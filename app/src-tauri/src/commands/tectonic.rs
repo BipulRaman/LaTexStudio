@@ -16,7 +16,7 @@ use crate::paths;
 
 const GITHUB_LATEST: &str =
     "https://api.github.com/repos/tectonic-typesetting/tectonic/releases/latest";
-const USER_AGENT: &str = "LatApp-Installer";
+const USER_AGENT: &str = "LaTeX-Studio-Installer";
 const PROGRESS_EVENT: &str = "tectonic:progress";
 
 #[derive(Debug, Clone, Serialize)]

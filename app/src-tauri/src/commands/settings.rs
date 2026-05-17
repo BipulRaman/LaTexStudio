@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub theme: String,                // "dark" | "light" | "system"
-    pub engine: String,               // "latexmk" | "pdflatex" | "xelatex" | "lualatex"
+    pub engine: String,               // "tectonic" (default) | "latexmk" | "pdflatex" | "xelatex" | "lualatex"
     #[serde(rename = "buildOnSave")]
     pub build_on_save: bool,
     #[serde(rename = "spellLang")]
@@ -26,7 +26,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             theme: "dark".into(),
-            engine: "latexmk".into(),
+            engine: "tectonic".into(),
             build_on_save: true,
             spell_lang: "en_US".into(),
             font_size: 14,

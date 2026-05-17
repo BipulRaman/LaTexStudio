@@ -2,7 +2,7 @@
 
 Hunspell dictionaries (`.aff` + `.dic`) live under `dictionaries/`.
 
-LatApp ships without dictionaries by default. To enable spellcheck, drop a
+LaTeX Studio ships without dictionaries by default. To enable spellcheck, drop a
 matching pair of files here, e.g.:
 
 ```

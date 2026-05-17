@@ -135,19 +135,19 @@ export function Outline({
         <li key={`${i}-${e.line}`}>
           <button
             type="button"
+            // tabIndex=-1 so clicking the button does not steal focus from the
+            // editor — the focus shift was triggering a WebView2 repaint glitch
+            // that occasionally hid the sidebar's Files/Outline tab strip.
+            tabIndex={-1}
             onClick={() => onJump(e.line)}
-            // Suppress the browser's default word-select on dblclick — without
-            // this, a 2nd click after focus has moved to the editor starts a
-            // text-selection drag in the sidebar, which makes WebView2
-            // mis-repaint the sibling tab strip until the next mouse move.
             onDoubleClick={(ev) => {
               ev.preventDefault();
               onJump(e.line);
             }}
             onMouseDown={(ev) => {
-              // Prevent the focused-element text selection that starts on
-              // the down-stroke of the 2nd click.
-              if (ev.detail > 1) ev.preventDefault();
+              // Always preventDefault on mousedown to suppress focus shift and
+              // any text-selection drag that bleeds across siblings in WebView2.
+              ev.preventDefault();
             }}
             className="w-full text-left flex items-center gap-2 px-1 py-0.5 rounded hover:bg-bg-hover text-fg-muted hover:text-fg select-none"
             style={{ paddingLeft: 4 + (e.level - minLevel) * 10 }}
