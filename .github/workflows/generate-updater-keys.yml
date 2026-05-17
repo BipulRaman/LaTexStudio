@@ -2,10 +2,15 @@ name: Generate Updater Signing Keys
 
 # One-shot helper workflow that runs `tauri signer generate` for you so you
 # never need to install Tauri locally. Trigger it manually from the
-# Actions tab. It reads the passphrase from the
-# TAURI_SIGNING_PRIVATE_KEY_PASSWORD repo secret (create it first), then
-# uploads the resulting private key as an artifact and prints the public
-# key in the log.
+# Actions tab.
+#
+# Design note — NO PASSPHRASE:
+#   The private key is generated WITHOUT a passphrase. A "second secret"
+#   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD) added zero real security: the key
+#   and its password would both live in GitHub Secrets, so an attacker who
+#   can read one can read the other. Removing the passphrase eliminates a
+#   whole class of CI breakage (shell escaping of '%', CRLF, trailing
+#   newlines, etc.) that produced "Wrong password for that key" errors.
 #
 # Run this ONCE per project (or when you want to rotate the signing key).
 
@@ -21,19 +26,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify passphrase secret is set
-        env:
-          PASSPHRASE: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          if [ -z "$PASSPHRASE" ]; then
-            echo "::error::Repo secret TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set."
-            echo "::error::Create it first: Settings → Secrets and variables → Actions → New repository secret"
-            echo "::error::Name: TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
-            echo "::error::Value: any passphrase you want to protect the signing key with"
-            exit 1
-          fi
-          echo "Passphrase secret found, length: ${#PASSPHRASE} chars."
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -47,21 +39,16 @@ jobs:
       - name: Install Tauri CLI
         run: npm install -g @tauri-apps/cli@2
 
-      - name: Generate keypair
+      - name: Generate keypair (no passphrase, CI mode)
         id: gen
         shell: bash
-        env:
-          PASSPHRASE: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -e
           mkdir -p out
-          # `tauri signer generate` is interactive — it prompts twice for the
-          # passphrase. Write it to a temp file (no shell interpretation of
-          # '%', '\', etc.) and pipe that into the CLI.
-          printf '%s' "$PASSPHRASE" > out/.pw
-          { cat out/.pw; echo; cat out/.pw; echo; } \
-            | npx @tauri-apps/cli signer generate -w out/key
-          rm -f out/.pw
+          # --ci      : non-interactive, never prompts
+          # --force   : overwrite if a previous key happens to exist
+          # (no -p)   : generates a key with an EMPTY passphrase
+          npx @tauri-apps/cli signer generate --ci --force -w out/key
 
           # `-w out/key` writes BOTH files: out/key (private) and out/key.pub (public)
           PUB="$(cat out/key.pub)"
@@ -69,12 +56,10 @@ jobs:
           echo "$PUB"
           echo "---------------------------------------------------"
 
-          # Mask the private key in the log so accidental scrolling cannot
-          # leak it — you'll get it from the uploaded artifact instead.
+          # Mask the private key in the log so accidental scrolling cannot leak it.
           PRIV="$(cat out/key)"
           echo "::add-mask::$PRIV"
 
-          # Persist the public key for the next step.
           {
             echo "public_key<<EOF"
             echo "$PUB"
@@ -96,12 +81,11 @@ jobs:
         run: |
           cat <<EOF
           ============================================================
-            TAURI UPDATER SIGNING KEYS GENERATED
+            TAURI UPDATER SIGNING KEYS GENERATED  (no passphrase)
           ============================================================
 
-          The passphrase secret (TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
-          is already in place. Two more things to do, then DELETE
-          the artifact at the bottom of this run.
+          Two things to do, then DELETE the artifact at the bottom of
+          this run.
 
           ─────────────────────────────────────────────────────────
           STEP 1 — Edit app/src-tauri/tauri.conf.json
@@ -117,10 +101,10 @@ jobs:
           Commit and push that change.
 
           ─────────────────────────────────────────────────────────
-          STEP 2 — Create the private-key repository secret
+          STEP 2 — Create / update the private-key repository secret
           ─────────────────────────────────────────────────────────
             Repo → Settings → Secrets and variables → Actions
-                 → New repository secret
+                 → New repository secret  (or update existing)
 
             ┌───────────────────────────────────────────────────────┐
             │ SECRET NAME (copy exactly):                           │
@@ -132,6 +116,9 @@ jobs:
             │   the tauri-signing-keypair artifact (download it     │
             │   from the Artifacts section of this run).            │
             └───────────────────────────────────────────────────────┘
+
+            You can DELETE the old TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+            secret — it is no longer used.
 
           ─────────────────────────────────────────────────────────
           STEP 3 — Delete the artifact
@@ -148,10 +135,10 @@ jobs:
             signed latest.json so the in-app updater can verify
             and install new versions.
 
-            Lost the keys? Re-run this workflow. Note: existing
-            installs signed with the old key will NOT auto-update
-            to releases signed by the new key (signature mismatch)
-            and will need to reinstall manually.
+            Lost the key? Re-run this workflow. Existing installs
+            signed with the old key will NOT auto-update to releases
+            signed by the new key (signature mismatch) and will need
+            to reinstall manually.
 
           ============================================================
           EOF

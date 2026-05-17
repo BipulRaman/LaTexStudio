@@ -154,14 +154,17 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Updater signing — required for the Tauri auto-updater. Generate
-          # the keypair once with `npm run tauri signer generate -- -w ./key`,
-          # put the PRIVATE key (the file contents) into the GitHub secret
-          # TAURI_SIGNING_PRIVATE_KEY and the passphrase you chose into
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD. Put the public key into
-          # tauri.conf.json → plugins.updater.pubkey.
+          # Updater signing — required for the Tauri auto-updater.
+          # The signing key is generated (without a passphrase) by the
+          # "Generate Updater Signing Keys" workflow and stored in the
+          # TAURI_SIGNING_PRIVATE_KEY repo secret. Public key lives in
+          # app/src-tauri/tauri.conf.json → plugins.updater.pubkey.
+          #
+          # The password env var MUST be defined (Tauri errors if it's
+          # missing) but it is intentionally empty: see the design note
+          # in .github/workflows/generate-updater-keys.yml.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         with:
           projectPath: app
           tagName: ${{ steps.tag.outputs.tag }}
