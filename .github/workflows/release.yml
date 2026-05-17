@@ -106,20 +106,21 @@ jobs:
           grep -m1 '"version"' app/package.json
           grep -m1 '^version' app/src-tauri/Cargo.toml
 
-      - name: Install Linux build dependencies
+      - name: Install Linux build dependencies (cached)
         if: matrix.platform.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libssl-dev \
-            build-essential \
-            curl \
-            wget \
-            file
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev build-essential curl wget file
+          version: 1.0
+
+      - name: Cache Tauri Windows bundler tools (WiX + NSIS)
+        if: matrix.platform.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\tauri\WixTools314
+            ~\AppData\Local\tauri\NSIS
+          key: tauri-win-bundler-v1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
