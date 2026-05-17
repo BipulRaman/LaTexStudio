@@ -65,6 +65,12 @@ const STARTER_DOC = `\\documentclass{article}
 \\end{document}
 `;
 
+/** Files we can hand to the LaTeX build pipeline. Keep this in sync with the
+ *  set of extensions Tree.tsx treats as TeX sources. */
+function isTexPath(path: string | null | undefined): boolean {
+  return !!path && /\.(tex|ltx|latex)$/i.test(path);
+}
+
 function App() {
   const [version, setVersion] = useState<string>("…");
   const [status, setStatus] = useState<string>("Ready");
@@ -88,6 +94,8 @@ function App() {
   const startBuild = useBuild((s) => s.start);
   const appendLine = useBuild((s) => s.appendLine);
   const finishBuild = useBuild((s) => s.finish);
+  const resetBuild = useBuild((s) => s.reset);
+  const setPdfPath = useBuild((s) => s.setPdfPath);
 
   const editorRef = useRef<LatexEditorHandle>(null);
   const [pdfReloadToken, setPdfReloadToken] = useState(0);
@@ -345,6 +353,20 @@ function App() {
 
   const openFileByPath = useCallback(
     async (path: string) => {
+      // PDFs are previewed, not opened in the editor. Clicking a .pdf in
+      // the sidebar just (re)loads it in the PDF panel.
+      if (/\.pdf$/i.test(path)) {
+        try {
+          setPdfPath(path);
+          setPdfReloadToken((t) => t + 1);
+          const updated = await recentsApi.push(path, "file");
+          setRecents(updated);
+          setStatus(`Previewing ${path}`);
+        } catch (e: unknown) {
+          setStatus(`Open failed: ${(e as Error).message}`);
+        }
+        return;
+      }
       try {
         const contents = await fsApi.readFile(path);
         setDoc({ path, contents, dirty: false });
@@ -363,7 +385,7 @@ function App() {
         setStatus(`Open failed: ${(e as Error).message}`);
       }
     },
-    [setDoc, setRootDoc],
+    [setDoc, setRootDoc, setPdfPath],
   );
 
   async function handleOpenFile() {
@@ -386,6 +408,10 @@ function App() {
       if (!ok) return;
     }
     setDoc(null);
+    // Clear the build state too so the PDF preview, log panel and
+    // diagnostics close along with the source file. Otherwise the viewer
+    // keeps showing a PDF whose .tex is no longer open, which is confusing.
+    resetBuild();
     setStatus("Closed");
   }
 
@@ -490,6 +516,11 @@ function App() {
     const target = rootDoc ?? activeDoc?.path;
     if (!target) {
       setStatus("Save the file before building");
+      return;
+    }
+    if (!isTexPath(target)) {
+      setStatus("Only LaTeX files (.tex / .ltx / .latex) can be built");
+      toast.warning("Open a .tex file to build");
       return;
     }
     await runBuild(target);
@@ -698,8 +729,11 @@ function App() {
   }, []);
 
   const docLabel = activeDoc
-    ? `${activeDoc.path ?? "untitled.tex"}${activeDoc.dirty ? " •" : ""}`
+    ? `${activeDoc.path ? (activeDoc.path.split(/[\\/]/).pop() || activeDoc.path) : "untitled.tex"}${activeDoc.dirty ? " •" : ""}`
     : "No file open";
+  // Full path stays available for the tooltip / aria so users can still see
+  // where the file lives without it crowding the tab.
+  const docTitle = activeDoc?.path ?? docLabel;
 
   const paletteCommands = useMemo<PaletteCommand[]>(
     () => [
@@ -1182,10 +1216,11 @@ function App() {
           <section className="flex-1 min-w-0 bg-bg flex flex-col">
             <DocHeader
               docLabel={docLabel}
+              docTitle={docTitle}
               buildPhase={buildPhase}
               onBuild={handleBuild}
               onCancel={handleCancelBuild}
-              canBuild={!!activeDoc}
+              canBuild={!!(rootDoc ?? activeDoc?.path) && isTexPath(rootDoc ?? activeDoc?.path ?? "")}
               canClose={!!activeDoc}
               onClose={handleCloseDoc}
             />
@@ -1373,6 +1408,7 @@ function StatusBtn({
 
 function DocHeader({
   docLabel,
+  docTitle,
   buildPhase,
   onBuild,
   onCancel,
@@ -1381,6 +1417,7 @@ function DocHeader({
   onClose,
 }: {
   docLabel: string;
+  docTitle?: string;
   buildPhase: "idle" | "running" | "success" | "failed" | "cancelled";
   onBuild: () => void;
   onCancel: () => void;
@@ -1394,7 +1431,7 @@ function DocHeader({
       style={{ flex: "0 0 36px", height: 36 }}
     >
       <FileText className="h-3.5 w-3.5 text-fg-subtle shrink-0" />
-      <span className="truncate text-fg min-w-0" title={docLabel}>
+      <span className="truncate text-fg min-w-0" title={docTitle ?? docLabel}>
         {docLabel}
       </span>
       {canClose && (
