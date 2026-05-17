@@ -683,6 +683,20 @@ function App() {
         run: () => setTectonicOpen(true),
       },
       {
+        id: "build.openLog",
+        category: "Build",
+        label: "Open build log…",
+        run: async () => {
+          try {
+            const path = await invoke<string>("last_session_log_path");
+            const { openPath } = await import("@tauri-apps/plugin-opener");
+            await openPath(path);
+          } catch (e) {
+            toast.error(`Could not open log: ${(e as Error).message}`, null);
+          }
+        },
+      },
+      {
         id: "view.outline",
         category: "View",
         label: "Show outline",
@@ -941,6 +955,20 @@ function App() {
                   `Found: ${av.join(", ")}`,
                   6000,
                 );
+            },
+          },
+          { kind: "separator" },
+          {
+            kind: "item",
+            label: "Open Build &Log…",
+            onClick: async () => {
+              try {
+                const path = await invoke<string>("last_session_log_path");
+                const { openPath } = await import("@tauri-apps/plugin-opener");
+                await openPath(path);
+              } catch (e) {
+                toast.error(`Could not open log: ${(e as Error).message}`, null);
+              }
             },
           },
         ],

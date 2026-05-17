@@ -12,6 +12,7 @@ use tokio::sync::oneshot;
 use crate::build::engine::Engine;
 use crate::build::log_parser::{self, Diagnostic};
 use crate::errors::{AppError, AppResult};
+use crate::paths;
 
 #[derive(Debug, Default)]
 pub struct BuildState {
@@ -232,10 +233,56 @@ pub async fn compile_latex(
     let log = std::fs::read_to_string(&log_path).unwrap_or_default();
     let diagnostics = log_parser::parse(&log, Some(&source));
 
+    // Append this build's log to the rolling per-session log file in the app
+    // data directory so the user can inspect it even after the on-disk
+    // .log next to the source is deleted below.
+    if let Ok(session_log) = paths::session_log_path(&app) {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&session_log)
+        {
+            use std::io::Write;
+            let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+            let header = format!(
+                "\n==================== BUILD {ts} ====================\nsource : {src}\nengine : {eng}\nexit   : {code}\n--------------------------------------------------------\n",
+                src = source.display(),
+                eng = chosen.binary(),
+                code = exit_code.map(|c| c.to_string()).unwrap_or_else(|| "—".to_string()),
+            );
+            let _ = f.write_all(header.as_bytes());
+            let _ = f.write_all(log.as_bytes());
+            if !log.ends_with('\n') {
+                let _ = f.write_all(b"\n");
+            }
+        }
+    }
+
     let pdf_path = {
         let p = out_dir.join(format!("{}.pdf", stem.to_string_lossy()));
         if p.exists() { Some(p.to_string_lossy().to_string()) } else { None }
     };
+
+    // Clean up LaTeX side files so the source folder is not polluted. We keep
+    // the .pdf (the build artifact the user wants) and .synctex.gz (needed
+    // for forward / inverse SyncTeX navigation). Everything else \u2014 .aux,
+    // .log, .out, .toc, .fls, .fdb_latexmk, bib/glossary intermediates, etc.
+    // \u2014 is removed after diagnostics have been parsed above.
+    {
+        const AUX_EXTS: &[&str] = &[
+            "aux", "log", "out", "toc", "lof", "lot", "fls", "fdb_latexmk",
+            "nav", "snm", "vrb", "blg", "bbl", "bcf", "run.xml", "idx", "ind",
+            "ilg", "glo", "gls", "glg", "ist", "acn", "acr", "alg", "thm",
+            "xdy", "synctex",
+        ];
+        let stem_str = stem.to_string_lossy().to_string();
+        for ext in AUX_EXTS {
+            let p = out_dir.join(format!("{}.{}", stem_str, ext));
+            if p.exists() {
+                let _ = std::fs::remove_file(&p);
+            }
+        }
+    }
 
     let status = if cancelled {
         BuildStatus::Cancelled

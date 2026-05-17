@@ -15,6 +15,15 @@ fn app_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+/// Returns the absolute path of the rolling per-session build log so the
+/// frontend can open it (via the opener plugin) in the OS default editor.
+#[tauri::command]
+fn last_session_log_path(app: tauri::AppHandle) -> Result<String, String> {
+    paths::session_log_path(&app)
+        .map(|p| p.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
@@ -31,9 +40,18 @@ pub fn run() {
         .manage(Arc::new(build::runner::BuildState::default()))
         .manage(Arc::new(watcher::WatcherState::default()))
         .manage(Arc::new(commands::spellcheck::SpellState::default()))
-        .setup(|app| menu::setup(app))
+        .setup(|app| {
+            // Reset the rolling build log on every app start so it only ever
+            // holds the current session's builds.
+            let handle = app.handle().clone();
+            if let Err(e) = paths::reset_session_log(&handle) {
+                tracing::warn!("failed to reset session log: {e}");
+            }
+            menu::setup(app)
+        })
         .invoke_handler(tauri::generate_handler![
             app_version,
+            last_session_log_path,
             commands::fs::read_file,
             commands::fs::write_file,
             commands::fs::list_dir,

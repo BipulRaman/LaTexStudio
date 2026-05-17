@@ -34,6 +34,19 @@ pub fn settings_path(app: &AppHandle) -> AppResult<PathBuf> {
     Ok(app_data_dir(app)?.join("settings.json"))
 }
 
+/// Path to the rolling per-session build log. Truncated on every app start
+/// and appended to after every build.
+pub fn session_log_path(app: &AppHandle) -> AppResult<PathBuf> {
+    Ok(app_data_dir(app)?.join("last-session.log"))
+}
+
+/// Reset the per-session log to empty. Called once at app startup.
+pub fn reset_session_log(app: &AppHandle) -> AppResult<PathBuf> {
+    let p = session_log_path(app)?;
+    std::fs::write(&p, b"")?;
+    Ok(p)
+}
+
 /// Path to recents JSON.
 pub fn recents_path(app: &AppHandle) -> AppResult<PathBuf> {
     Ok(app_data_dir(app)?.join("recents.json"))
