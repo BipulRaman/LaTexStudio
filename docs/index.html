@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaTeX Studio — A modern desktop LaTeX editor</title>
+    <meta
+      name="description"
+      content="LaTeX Studio is a fast, distraction-free desktop LaTeX editor for Windows, macOS and Linux — with built-in PDF preview, SyncTeX, outline navigation, spellcheck, and one-click Tectonic install. Local-first, no telemetry, MIT licensed."
+    />
+    <meta name="author" content="Bipul Raman" />
+    <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <meta property="og:title" content="LaTeX Studio — A modern desktop LaTeX editor" />
+    <meta
+      property="og:description"
+      content="Fast, distraction-free desktop LaTeX editor with built-in PDF preview, SyncTeX, outline, and one-click Tectonic install. Local-first, MIT licensed."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./Screenshot.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+
+    <!-- Set theme before paint to avoid FOUC -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("ls-theme");
+          var system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          var theme = stored || system;
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {}
+      })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eef4ff", 100: "#dbe6ff", 200: "#bccfff", 300: "#8eafff",
+                400: "#5e89ff", 500: "#3b66f5", 600: "#274ddd", 700: "#1f3db4",
+                800: "#1b348e", 900: "#1a2f73",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter","ui-sans-serif","system-ui","-apple-system","Segoe UI","Roboto","sans-serif"],
+              mono: ["JetBrains Mono","ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"],
+            },
+            boxShadow: {
+              card: "0 1px 2px rgba(15,23,42,.06), 0 8px 24px -12px rgba(15,23,42,.12)",
+              cardDark: "0 1px 2px rgba(0,0,0,.4), 0 30px 60px -30px rgba(0,0,0,.6)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      html { scroll-behavior: smooth; }
+      :root {
+        --grid-line: rgba(15, 23, 42, 0.06);
+        --bg: #ffffff; --bg-soft: #f7f8fa; --bg-elev: #ffffff;
+        --border: #e6e9ef; --border-strong: #d2d7e0;
+        --fg: #0b0d12; --fg-muted: #4a5260; --fg-subtle: #6b7585;
+        --accent: #274ddd;
+      }
+      html.dark {
+        --grid-line: rgba(255, 255, 255, 0.05);
+        --bg: #0b0d12; --bg-soft: #0f1218; --bg-elev: #13171d;
+        --border: #1f242c; --border-strong: #2a313c;
+        --fg: #e9ecf3; --fg-muted: #9aa3b2; --fg-subtle: #6b7585;
+        --accent: #8eafff;
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--fg);
+        background-image:
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 56px 56px;
+        background-position: top center;
+      }
+      .surface { background: var(--bg-elev); border: 1px solid var(--border); }
+      .surface-soft { background: var(--bg-soft); }
+      .hairline { border-color: var(--border); }
+      .eyebrow {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--accent);
+      }
+      .hero-headline {
+        background: linear-gradient(180deg, var(--fg) 60%, color-mix(in srgb, var(--fg) 55%, var(--accent) 45%) 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .ring-soft { box-shadow: 0 0 0 1px var(--border); }
+      .ring-accent {
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+          0 18px 50px -20px color-mix(in srgb, var(--accent) 35%, transparent);
+      }
+      .kbd {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px; padding: 1px 6px; border-radius: 4px;
+        background: var(--bg-soft); border: 1px solid var(--border); color: var(--fg);
+      }
+      .check-row {
+        display: grid; grid-template-columns: 18px 1fr; align-items: start; gap: 8px;
+      }
+      .nav-surface {
+        background: color-mix(in srgb, var(--bg) 85%, transparent);
+        backdrop-filter: saturate(140%) blur(12px);
+      }
+      details > summary { list-style: none; cursor: pointer; }
+      details > summary::-webkit-details-marker { display: none; }
+      details[open] .chev { transform: rotate(180deg); }
+      .chev { transition: transform 200ms ease; }
+      .hero-glow::before {
+        content: ""; position: absolute; inset: -120px 10% auto 10%;
+        height: 320px;
+        background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 30%, transparent), transparent 75%);
+        filter: blur(40px); z-index: -1; pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased min-h-screen">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-3 focus:py-1.5 focus:rounded focus:bg-brand-600 focus:text-white"
+    >Skip to content</a>
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-30 border-b hairline nav-surface">
+      <nav class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="#top" class="flex items-center gap-2.5 group">
+          <span class="h-8 w-8 rounded-md grid place-items-center"
+                style="background: color-mix(in srgb, var(--accent) 10%, var(--bg-elev)); box-shadow: 0 0 0 1px var(--border);">
+            <img src="./icon.svg" alt="" class="h-5 w-5" />
+          </span>
+          <span class="font-semibold tracking-tight">LaTeX Studio</span>
+        </a>
+
+        <div class="hidden md:flex items-center gap-7 text-sm" style="color: var(--fg-muted)">
+          <a href="#features" class="hover:text-[color:var(--fg)] transition-colors">Features</a>
+          <a href="#workflow" class="hover:text-[color:var(--fg)] transition-colors">Workflow</a>
+          <a href="#compare" class="hover:text-[color:var(--fg)] transition-colors">Compare</a>
+          <a href="#faq" class="hover:text-[color:var(--fg)] transition-colors">FAQ</a>
+          <a href="#download" class="hover:text-[color:var(--fg)] transition-colors">Download</a>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="themeToggle" type="button"
+            class="h-9 w-9 grid place-items-center rounded-md border hairline hover:bg-[color:var(--bg-soft)] transition-colors"
+            title="Toggle theme" aria-label="Toggle color theme">
+            <svg class="h-4 w-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <svg class="h-4 w-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <a href="https://github.com/BipulRaman/LaTexStudio10" target="_blank" rel="noopener"
+             class="hidden sm:inline-flex h-9 items-center gap-1.5 px-3 rounded-md border hairline hover:bg-[color:var(--bg-soft)] transition-colors text-sm">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.07 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.21-1.49 3.18-1.18 3.18-1.18.63 1.6.23 2.78.11 3.07.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.26 5.68.41.35.78 1.05.78 2.12v3.14c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+            GitHub
+          </a>
+          <a href="#download" class="inline-flex h-9 items-center px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
+            Download
+          </a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <!-- HERO -->
+      <section id="top" class="relative hero-glow">
+        <div class="max-w-7xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-16 text-center">
+          <span class="inline-flex items-center gap-2 px-3 py-1 text-[11px] font-mono uppercase tracking-widest rounded-full border hairline surface-soft"
+                style="color: var(--fg-muted)">
+            <span class="h-1.5 w-1.5 rounded-full" style="background: #10b981"></span>
+            Open source · Free forever
+          </span>
+
+          <h1 class="mt-7 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.05] hero-headline">
+            The desktop LaTeX editor<br />that gets out of your way.
+          </h1>
+
+          <p class="mt-6 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed" style="color: var(--fg-muted)">
+            LaTeX Studio is a modern, native editor for writing and compiling LaTeX
+            on Windows, macOS and Linux — with a built-in PDF preview, SyncTeX,
+            outline view and one-click Tectonic install. Local-first, no accounts,
+            no telemetry.
+          </p>
+
+          <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <a href="https://github.com/BipulRaman/LaTexStudio10/releases/latest" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white font-medium transition-colors shadow-card">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 9 6 6 6-6"/><path d="M5 21h14"/></svg>
+              Download for Windows
+            </a>
+            <a href="#download" class="inline-flex items-center gap-2 px-5 py-3 rounded-md border hairline surface hover:bg-[color:var(--bg-soft)] transition-colors font-medium">
+              All platforms
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+
+          <p class="mt-5 text-xs" style="color: var(--fg-subtle)">
+            Free &amp; open source · MIT licensed · No telemetry · Created by
+            <a href="https://bipul.in" target="_blank" rel="noopener"
+               class="font-medium hover:underline" style="color: var(--fg-muted)">Bipul Raman</a>
+          </p>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 pb-20 md:pb-28">
+          <div class="relative rounded-xl overflow-hidden ring-soft ring-accent">
+            <div class="hidden sm:flex items-center gap-1.5 px-4 h-9 border-b hairline" style="background: var(--bg-elev)">
+              <span class="h-3 w-3 rounded-full" style="background:#ff5f57"></span>
+              <span class="h-3 w-3 rounded-full" style="background:#febc2e"></span>
+              <span class="h-3 w-3 rounded-full" style="background:#28c840"></span>
+              <span class="ml-3 text-xs font-mono" style="color: var(--fg-subtle)">latex-studio · untitled.tex</span>
+            </div>
+            <img src="./Screenshot.jpg"
+                 alt="Screenshot of LaTeX Studio showing the outline pane, source editor, and live PDF preview"
+                 class="w-full block" loading="eager" />
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS STRIP -->
+      <section class="border-y hairline" style="background: var(--bg-soft)">
+        <div class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+          <div>
+            <div class="text-2xl font-bold tracking-tight">3</div>
+            <div class="mt-1 text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Platforms</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold tracking-tight">~30&nbsp;MB</div>
+            <div class="mt-1 text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Installer size</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold tracking-tight">5</div>
+            <div class="mt-1 text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">LaTeX engines</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold tracking-tight">0</div>
+            <div class="mt-1 text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Trackers</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURES -->
+      <section id="features" class="max-w-7xl mx-auto px-6 py-20 md:py-28">
+        <div class="max-w-3xl">
+          <p class="eyebrow">Features</p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+            Built for focused, modern LaTeX writing.
+          </h2>
+          <p class="mt-4 leading-relaxed" style="color: var(--fg-muted)">
+            Everything you need to draft, build and preview a LaTeX document —
+            and nothing you don't. Designed to feel as fast and quiet as a text
+            editor, with the power of a full build pipeline behind it.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+            <h3 class="font-semibold">Modern CodeMirror 6 editor</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Syntax highlighting, snippets, autocomplete, bracket matching,
+              search, and LaTeX-aware editing built on the latest CodeMirror.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+            </div>
+            <h3 class="font-semibold">Live PDF preview</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              A native PDF.js viewer sits next to your source. Zoom, fit-width,
+              page indicator — and the page reloads automatically after every build.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 19 9-7-9-7v14z"/><path d="M2 12h11"/></svg>
+            </div>
+            <h3 class="font-semibold">Two-way SyncTeX</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Jump from a position in the source to the matching PDF location
+              and back. <span class="kbd">Ctrl+Alt+J</span> jumps forward;
+              shift-click in the PDF jumps back.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h6"/><path d="M3 12h12"/><path d="M3 19h18"/></svg>
+            </div>
+            <h3 class="font-semibold">Document outline</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Parts, chapters, sections, beamer frame titles and custom
+              CV-style sections appear in a navigable sidebar — click to jump.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg>
+            </div>
+            <h3 class="font-semibold">One-click Tectonic install</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              No TeX install? Click <em>Install Tectonic</em> and we'll fetch
+              the ~20 MB self-contained engine. latexmk, pdflatex, xelatex and
+              lualatex are also supported.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <h3 class="font-semibold">Hunspell spellcheck</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Spellcheck respects LaTeX syntax (commands, math, comments) so
+              it only flags real prose typos. Bring your own dictionary.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <h3 class="font-semibold">Command palette</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              <span class="kbd">Ctrl+Shift+P</span> opens a fuzzy palette over
+              every action — build, open, switch engine, change theme, jump
+              to file.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3 class="font-semibold">File-system watcher</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              External edits to your source folder are picked up instantly.
+              Builds can re-trigger on save so the PDF stays current as you write.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="font-semibold">Local-first &amp; private</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Your documents never leave your machine. No analytics, no
+              accounts, no network calls — except when you ask for Tectonic.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- WORKFLOW -->
+      <section id="workflow" class="max-w-7xl mx-auto px-6 py-20 md:py-28">
+        <div class="max-w-3xl">
+          <p class="eyebrow">Workflow</p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+            From zero to a compiled PDF in three steps.
+          </h2>
+          <p class="mt-4 leading-relaxed" style="color: var(--fg-muted)">
+            No project files, no configuration. Open a
+            <code class="font-mono text-sm">.tex</code> file or a folder and start writing.
+          </p>
+        </div>
+
+        <ol class="mt-12 grid gap-6 md:grid-cols-3">
+          <li class="relative surface shadow-card rounded-xl p-6">
+            <div class="absolute -top-3 left-6 h-6 px-2 rounded-full text-[11px] font-mono uppercase tracking-wider flex items-center"
+                 style="background: var(--accent); color: white">Step 01</div>
+            <h3 class="mt-3 font-semibold">Open</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              <span class="kbd">Ctrl + O</span> to open a single file, or
+              <span class="kbd">Ctrl + Shift + O</span> to open a folder. The
+              sidebar appears only when there's something to show.
+            </p>
+          </li>
+          <li class="relative surface shadow-card rounded-xl p-6">
+            <div class="absolute -top-3 left-6 h-6 px-2 rounded-full text-[11px] font-mono uppercase tracking-wider flex items-center"
+                 style="background: var(--accent); color: white">Step 02</div>
+            <h3 class="mt-3 font-semibold">Build</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Press <span class="kbd">F5</span> to compile with your chosen
+              engine. Errors and warnings appear inline with line numbers; the
+              build is cancellable mid-run.
+            </p>
+          </li>
+          <li class="relative surface shadow-card rounded-xl p-6">
+            <div class="absolute -top-3 left-6 h-6 px-2 rounded-full text-[11px] font-mono uppercase tracking-wider flex items-center"
+                 style="background: var(--accent); color: white">Step 03</div>
+            <h3 class="mt-3 font-semibold">Preview &amp; sync</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              The PDF refreshes automatically.
+              <span class="kbd">Ctrl + Alt + J</span> jumps forward to the
+              cursor; shift-click in the PDF jumps back to the source.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- COMPARE -->
+      <section id="compare" class="max-w-7xl mx-auto px-6 py-20 md:py-28">
+        <div class="max-w-3xl">
+          <p class="eyebrow">Why LaTeX Studio</p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+            Native speed. Modern UI. Local files.
+          </h2>
+          <p class="mt-4 leading-relaxed" style="color: var(--fg-muted)">
+            Cloud editors are great for collaboration but slow, opinionated and
+            tied to an account. Classic desktop editors are powerful but feel
+            stuck in the 2000s. LaTeX Studio sits in the middle.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-5 md:grid-cols-3">
+          <div class="surface shadow-card rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b hairline">
+              <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">LaTeX Studio</div>
+              <div class="mt-1 font-semibold">Native &amp; local</div>
+            </div>
+            <ul class="px-6 py-5 space-y-3 text-sm">
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Files stay on your machine</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Native window, instant startup</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Bring any engine: Tectonic, latexmk, MiKTeX, TeX Live</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>MIT licensed, no telemetry, no account</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Polished dark + light themes</span></li>
+            </ul>
+          </div>
+
+          <div class="surface shadow-card rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b hairline">
+              <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Cloud editors</div>
+              <div class="mt-1 font-semibold">Web-only collaboration tools</div>
+            </div>
+            <ul class="px-6 py-5 space-y-3 text-sm">
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Files stored on a vendor server</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Slower compiles, queueing, network latency</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Subscription required for advanced features</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Needs internet to write</span></li>
+            </ul>
+          </div>
+
+          <div class="surface shadow-card rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b hairline">
+              <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Classic desktop editors</div>
+              <div class="mt-1 font-semibold">Powerful but dated</div>
+            </div>
+            <ul class="px-6 py-5 space-y-3 text-sm">
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Files stay local</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Dense, dated UI; steep config</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Requires a full TeX install before first build</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #f97316"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>Java / Qt overhead, slower startup</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" class="max-w-4xl mx-auto px-6 py-20 md:py-28">
+        <div>
+          <p class="eyebrow">FAQ</p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight">Frequently asked questions</h2>
+        </div>
+
+        <div class="mt-10 divide-y hairline border-y hairline">
+          <details class="py-5 group">
+            <summary class="flex items-center justify-between gap-4">
+              <span class="font-medium">Do I need a TeX distribution installed?</span>
+              <svg class="h-4 w-4 chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              No. On first launch, if no engine is found on your system, LaTeX
+              Studio will prompt you to install <strong>Tectonic</strong> — a
+              ~20 MB self-contained TeX engine that lives in the app data
+              folder. If you prefer, you can install MiKTeX or TeX Live and pick
+              latexmk / pdflatex / xelatex / lualatex from
+              <em>Build → Engine</em>.
+            </p>
+          </details>
+
+          <details class="py-5 group">
+            <summary class="flex items-center justify-between gap-4">
+              <span class="font-medium">Where does the compiled PDF go?</span>
+              <svg class="h-4 w-4 chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Right next to your <code class="font-mono">.tex</code> source —
+              along with the usual side files (<code class="font-mono">.aux</code>,
+              <code class="font-mono">.log</code>,
+              <code class="font-mono">.synctex.gz</code>). Easy to share, easy
+              to version-control.
+            </p>
+          </details>
+
+          <details class="py-5 group">
+            <summary class="flex items-center justify-between gap-4">
+              <span class="font-medium">Is it really free?</span>
+              <svg class="h-4 w-4 chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Yes. LaTeX Studio is MIT-licensed open source. No paywall, no
+              upgrade tier, no telemetry, no account. If you like it,
+              <a href="https://github.com/BipulRaman/LaTexStudio10" target="_blank" rel="noopener"
+                 class="font-medium hover:underline" style="color: var(--accent)">star it on GitHub</a>.
+            </p>
+          </details>
+
+          <details class="py-5 group">
+            <summary class="flex items-center justify-between gap-4">
+              <span class="font-medium">Which platforms are supported?</span>
+              <svg class="h-4 w-4 chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Windows 10 / 11 (x64), macOS 12+ on both Apple Silicon and
+              Intel, and modern Linux distributions (x86_64;
+              <code class="font-mono">.deb</code> and
+              <code class="font-mono">.AppImage</code>). All built automatically
+              by GitHub Actions from every tagged commit.
+            </p>
+          </details>
+
+          <details class="py-5 group">
+            <summary class="flex items-center justify-between gap-4">
+              <span class="font-medium">How do I report a bug or request a feature?</span>
+              <svg class="h-4 w-4 chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Open an issue on
+              <a href="https://github.com/BipulRaman/LaTexStudio10/issues" target="_blank" rel="noopener"
+                 class="font-medium hover:underline" style="color: var(--accent)">GitHub</a>.
+              PRs welcome.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- DOWNLOAD -->
+      <section id="download" class="border-y hairline" style="background: var(--bg-soft)">
+        <div class="max-w-7xl mx-auto px-6 py-20 md:py-24 text-center">
+          <p class="eyebrow">Download</p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight">Get LaTeX Studio</h2>
+          <p class="mt-4 max-w-xl mx-auto leading-relaxed" style="color: var(--fg-muted)">
+            Pre-built binaries for Windows, macOS and Linux. Every release is
+            built automatically from a tagged commit.
+          </p>
+
+          <div class="mt-10 grid gap-5 sm:grid-cols-3 max-w-4xl mx-auto text-left">
+            <a href="https://github.com/BipulRaman/LaTexStudio10/releases/latest" target="_blank" rel="noopener"
+               class="surface shadow-card rounded-xl p-6 hover:ring-accent transition-shadow group">
+              <div class="flex items-center gap-3">
+                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" style="color: var(--accent)"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                <div>
+                  <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Windows</div>
+                  <div class="font-semibold">MSI · NSIS</div>
+                </div>
+              </div>
+              <p class="mt-4 text-sm" style="color: var(--fg-muted)">x64 installer or self-contained <code class="font-mono">.exe</code>.</p>
+              <div class="mt-4 text-xs font-medium inline-flex items-center gap-1" style="color: var(--accent)">
+                Latest release
+                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </div>
+            </a>
+
+            <a href="https://github.com/BipulRaman/LaTexStudio10/releases/latest" target="_blank" rel="noopener"
+               class="surface shadow-card rounded-xl p-6 hover:ring-accent transition-shadow group">
+              <div class="flex items-center gap-3">
+                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" style="color: var(--accent)"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.65-2.323-7.34 0-4.31 2.797-6.6 5.552-6.6 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.46z"/></svg>
+                <div>
+                  <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">macOS</div>
+                  <div class="font-semibold">.dmg</div>
+                </div>
+              </div>
+              <p class="mt-4 text-sm" style="color: var(--fg-muted)">Apple Silicon &amp; Intel.</p>
+              <div class="mt-4 text-xs font-medium inline-flex items-center gap-1" style="color: var(--accent)">
+                Latest release
+                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </div>
+            </a>
+
+            <a href="https://github.com/BipulRaman/LaTexStudio10/releases/latest" target="_blank" rel="noopener"
+               class="surface shadow-card rounded-xl p-6 hover:ring-accent transition-shadow group">
+              <div class="flex items-center gap-3">
+                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" style="color: var(--accent)"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.077 1.078-.236 1.926-1.077 3.234-.99 1.418-2.493 3.953-2.93 6.108-.187.832-.236 1.612-.205 2.32a6.83 6.83 0 0 0 .14 1.31 7.06 7.06 0 0 0 .25.882c.348.989 1.011 1.764 1.86 2.36 1.142.787 2.523 1.221 4.06 1.227.79.001 1.61-.13 2.42-.36 1.69-.49 3.05-1.42 4.18-2.51 1.13-1.09 2.03-2.35 2.66-3.78.46-1.04.76-2.14.86-3.27.08-1.13-.11-2.27-.61-3.31-1-2.07-2.65-3.61-3.66-5.55-.5-.97-.92-1.93-1.31-2.88-.39-.95-.74-1.91-1.08-2.81-.34-.9-.66-1.74-.99-2.49a4.42 4.42 0 0 0-.34-.66 1.83 1.83 0 0 0-.42-.5.83.83 0 0 0-.52-.18z"/></svg>
+                <div>
+                  <div class="text-xs font-mono uppercase tracking-wider" style="color: var(--fg-subtle)">Linux</div>
+                  <div class="font-semibold">.deb · .AppImage</div>
+                </div>
+              </div>
+              <p class="mt-4 text-sm" style="color: var(--fg-muted)">x86_64.</p>
+              <div class="mt-4 text-xs font-medium inline-flex items-center gap-1" style="color: var(--accent)">
+                Latest release
+                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </div>
+            </a>
+          </div>
+
+          <p class="mt-8 text-xs" style="color: var(--fg-subtle)">
+            Source available under the MIT license on
+            <a href="https://github.com/BipulRaman/LaTexStudio10" target="_blank" rel="noopener"
+               class="font-medium hover:underline" style="color: var(--accent)">GitHub</a>.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="max-w-7xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-4">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2.5">
+            <span class="h-8 w-8 rounded-md grid place-items-center"
+                  style="background: color-mix(in srgb, var(--accent) 10%, var(--bg-elev)); box-shadow: 0 0 0 1px var(--border);">
+              <img src="./icon.svg" alt="" class="h-5 w-5" />
+            </span>
+            <span class="font-semibold tracking-tight">LaTeX Studio</span>
+          </div>
+          <p class="mt-4 text-sm max-w-md" style="color: var(--fg-muted)">
+            A modern, native desktop LaTeX editor. Local-first, MIT licensed,
+            built for people who'd rather write than configure.
+          </p>
+          <p class="mt-5 text-xs" style="color: var(--fg-subtle)">
+            © 2026 LaTeX Studio · Created by
+            <a href="https://bipul.in" target="_blank" rel="noopener"
+               class="font-medium hover:underline" style="color: var(--fg-muted)">Bipul Raman</a>
+          </p>
+        </div>
+
+        <div>
+          <div class="text-xs font-mono uppercase tracking-wider mb-3" style="color: var(--fg-subtle)">Product</div>
+          <ul class="space-y-2 text-sm" style="color: var(--fg-muted)">
+            <li><a href="#features" class="hover:text-[color:var(--fg)] transition-colors">Features</a></li>
+            <li><a href="#workflow" class="hover:text-[color:var(--fg)] transition-colors">Workflow</a></li>
+            <li><a href="#compare" class="hover:text-[color:var(--fg)] transition-colors">Compare</a></li>
+            <li><a href="#faq" class="hover:text-[color:var(--fg)] transition-colors">FAQ</a></li>
+            <li><a href="#download" class="hover:text-[color:var(--fg)] transition-colors">Download</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-xs font-mono uppercase tracking-wider mb-3" style="color: var(--fg-subtle)">Project</div>
+          <ul class="space-y-2 text-sm" style="color: var(--fg-muted)">
+            <li><a href="https://github.com/BipulRaman/LaTexStudio10" target="_blank" rel="noopener" class="hover:text-[color:var(--fg)] transition-colors">GitHub</a></li>
+            <li><a href="https://github.com/BipulRaman/LaTexStudio10/releases" target="_blank" rel="noopener" class="hover:text-[color:var(--fg)] transition-colors">Releases</a></li>
+            <li><a href="https://github.com/BipulRaman/LaTexStudio10/issues" target="_blank" rel="noopener" class="hover:text-[color:var(--fg)] transition-colors">Report an issue</a></li>
+            <li><a href="https://github.com/BipulRaman/LaTexStudio10/blob/main/LICENSE" target="_blank" rel="noopener" class="hover:text-[color:var(--fg)] transition-colors">MIT License</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t hairline">
+        <div class="max-w-7xl mx-auto px-6 py-5 text-[11px] flex flex-col sm:flex-row gap-2 sm:justify-between" style="color: var(--fg-subtle)">
+          <span>LaTeX Studio is not affiliated with the LaTeX project.</span>
+          <span class="inline-flex items-center gap-1.5">
+            Built with
+            <svg class="inline-block h-3.5 w-3.5" viewBox="0 0 24 24" fill="#ef4444" aria-label="love" role="img">
+              <path d="M12 21s-7.5-4.6-9.9-9.1C.7 8.7 2.6 5 6 5c2 0 3.3 1 4 2 .7-1 2-2 4-2 3.4 0 5.3 3.7 3.9 6.9C19.5 16.4 12 21 12 21z"/>
+            </svg>
+            in
+            <svg
+              class="inline-block h-3 w-[18px] rounded-[1px] ring-1 ring-black/10 align-[-2px]"
+              viewBox="0 0 900 600"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="Flag of India"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <rect width="900" height="200" fill="#FF9933" />
+              <rect y="200" width="900" height="200" fill="#FFFFFF" />
+              <rect y="400" width="900" height="200" fill="#138808" />
+              <g transform="translate(450 300)">
+                <circle r="90" fill="none" stroke="#000080" stroke-width="6" />
+                <circle r="12" fill="#000080" />
+                <g stroke="#000080" stroke-width="3" stroke-linecap="round">
+                  <line y2="-87" transform="rotate(0)" />
+                  <line y2="-87" transform="rotate(15)" />
+                  <line y2="-87" transform="rotate(30)" />
+                  <line y2="-87" transform="rotate(45)" />
+                  <line y2="-87" transform="rotate(60)" />
+                  <line y2="-87" transform="rotate(75)" />
+                  <line y2="-87" transform="rotate(90)" />
+                  <line y2="-87" transform="rotate(105)" />
+                  <line y2="-87" transform="rotate(120)" />
+                  <line y2="-87" transform="rotate(135)" />
+                  <line y2="-87" transform="rotate(150)" />
+                  <line y2="-87" transform="rotate(165)" />
+                  <line y2="-87" transform="rotate(180)" />
+                  <line y2="-87" transform="rotate(195)" />
+                  <line y2="-87" transform="rotate(210)" />
+                  <line y2="-87" transform="rotate(225)" />
+                  <line y2="-87" transform="rotate(240)" />
+                  <line y2="-87" transform="rotate(255)" />
+                  <line y2="-87" transform="rotate(270)" />
+                  <line y2="-87" transform="rotate(285)" />
+                  <line y2="-87" transform="rotate(300)" />
+                  <line y2="-87" transform="rotate(315)" />
+                  <line y2="-87" transform="rotate(330)" />
+                  <line y2="-87" transform="rotate(345)" />
+                </g>
+              </g>
+            </svg>
+            India by
+            <a href="https://bipul.in" target="_blank" rel="noopener"
+               class="font-medium hover:underline" style="color: var(--fg-muted)">Bipul Raman</a>
+          </span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Theme toggle
+      (function () {
+        var btn = document.getElementById("themeToggle");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var dark = document.documentElement.classList.toggle("dark");
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          try { localStorage.setItem("ls-theme", dark ? "dark" : "light"); } catch (e) {}
+        });
+
+        var mql = window.matchMedia("(prefers-color-scheme: dark)");
+        mql.addEventListener && mql.addEventListener("change", function (e) {
+          try { if (localStorage.getItem("ls-theme")) return; } catch (err) {}
+          document.documentElement.classList.toggle("dark", e.matches);
+          document.documentElement.dataset.theme = e.matches ? "dark" : "light";
+        });
+      })();
+    </script>
+  </body>
+</html>
