@@ -165,6 +165,17 @@ jobs:
           # in .github/workflows/generate-updater-keys.yml.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          # macOS code signing.
+          # We don't have a paid Apple Developer ID, but Apple Silicon
+          # (arm64) refuses to launch ANY unsigned Mach-O binary with the
+          # error "app is damaged and can't be opened" — even before
+          # Gatekeeper / quarantine kicks in. Setting the signing identity
+          # to "-" tells codesign to apply a free ad-hoc signature, which
+          # satisfies the kernel. Users will still see the normal
+          # "unidentified developer" Gatekeeper prompt on first launch
+          # (right-click → Open), but the binary will no longer be
+          # reported as damaged.
+          APPLE_SIGNING_IDENTITY: '-'
         with:
           projectPath: app
           tagName: ${{ steps.tag.outputs.tag }}
@@ -177,3 +188,107 @@ jobs:
           # can find new versions.
           updaterJsonPreferNsis: true
           args: ${{ matrix.platform.args }}
+
+  rename-assets:
+    name: Rename release assets to a uniform scheme
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rename user-facing installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+
+          # Why this job exists:
+          # Tauri/cargo-bundle name each installer with the per-bundler
+          # convention (x86_64 vs amd64 vs x64, no OS prefix, mixed _ and -).
+          # That's confusing on a Releases page that mixes 3 platforms.
+          # We rename only the files that are NOT referenced by latest.json
+          # (renaming an updater-referenced file would break auto-update
+          # for every already-installed user).
+          #
+          # Safe to rename:   .msi, .dmg, .deb, .rpm
+          # MUST keep as-is:  setup.exe, .AppImage, .app.tar.gz, *.sig,
+          #                   latest.json (all referenced by the updater
+          #                   manifest or are the manifest itself).
+
+          rename_asset() {
+            local pattern="$1" newname="$2"
+            local asset_json asset_name asset_id
+            asset_json=$(gh api "repos/$REPO/releases/tags/$TAG" \
+              --jq "[.assets[] | select(.name | test(\"$pattern\"))][0]")
+            if [ -z "$asset_json" ] || [ "$asset_json" = "null" ]; then
+              echo "skip: no asset matching /$pattern/"
+              return 0
+            fi
+            asset_name=$(echo "$asset_json" | jq -r '.name')
+            asset_id=$(echo "$asset_json" | jq -r '.id')
+            if [ "$asset_name" = "$newname" ]; then
+              echo "skip: $asset_name already named correctly"
+              return 0
+            fi
+            echo "rename: $asset_name -> $newname"
+            gh api -X PATCH "repos/$REPO/releases/assets/$asset_id" \
+              -f name="$newname" >/dev/null
+          }
+
+          rename_asset "_x64_en-US\\.msi$"  "LaTeXStudio-${VERSION}-Windows-x64.msi"
+          rename_asset "_x64\\.dmg$"        "LaTeXStudio-${VERSION}-macOS-Intel.dmg"
+          rename_asset "_aarch64\\.dmg$"    "LaTeXStudio-${VERSION}-macOS-AppleSilicon.dmg"
+          rename_asset "_amd64\\.deb$"      "LaTeXStudio-${VERSION}-Linux-x64.deb"
+          rename_asset "x86_64\\.rpm$"      "LaTeXStudio-${VERSION}-Linux-x64.rpm"
+
+      - name: Delete stray signature files the updater never consults
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # tauri-action signs EVERY bundle it produces, but the updater
+          # manifest (latest.json) only references one installer per OS:
+          #   - Windows: NSIS setup.exe   (updaterJsonPreferNsis: true)
+          #   - macOS:   .app.tar.gz
+          #   - Linux:   .AppImage
+          # The .sig files for .msi / .deb / .rpm therefore have no
+          # consumer and just clutter the Releases page. Drop them.
+
+          delete_asset() {
+            local pattern="$1"
+            local asset_ids
+            asset_ids=$(gh api "repos/$REPO/releases/tags/$TAG" \
+              --jq ".assets[] | select(.name | test(\"$pattern\")) | .id")
+            if [ -z "$asset_ids" ]; then
+              echo "skip: no asset matching /$pattern/"
+              return 0
+            fi
+            for id in $asset_ids; do
+              local name
+              name=$(gh api "repos/$REPO/releases/assets/$id" --jq '.name')
+              echo "delete: $name (id=$id)"
+              gh api -X DELETE "repos/$REPO/releases/assets/$id"
+            done
+          }
+
+          delete_asset "\\.msi\\.sig$"
+          delete_asset "\\.deb\\.sig$"
+          delete_asset "\\.rpm\\.sig$"

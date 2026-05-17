@@ -97,6 +97,68 @@ macOS/Linux).
 Last verified Windows build: MSI ≈ 9.4 MB, NSIS ≈ 6.4 MB, standalone exe
 ≈ 26 MB.
 
+## macOS: "app is damaged and can't be opened"
+
+The macOS builds are ad-hoc signed but **not** notarized (we don't have a
+paid Apple Developer account). On first launch:
+
+- **Apple Silicon (M1/M2/M3/M4)** — if you downloaded a build older than
+  the ad-hoc signing fix, macOS will refuse to launch it with
+  *"LaTeX Studio.app is damaged and can't be opened. You should move it
+  to the Trash."* Clear the quarantine attribute that Safari/Chrome
+  attached during download:
+
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/LaTeX Studio.app"
+  ```
+
+  Then open the app normally. Newer builds (with ad-hoc signing) only
+  need the right-click workaround below.
+
+- **All Macs** — for any unsigned/ad-hoc build, the very first launch
+  must be done by **right-click → Open → Open** so Gatekeeper records
+  your approval. Double-clicking shows only a "cannot be opened" dialog
+  with no Open button.
+
+## Windows: SmartScreen "Windows protected your PC"
+
+Windows installers (`.msi` and `setup.exe`) are **not** code-signed — we
+don't have an EV code-signing certificate. On first run, Microsoft
+Defender SmartScreen will show:
+
+> Windows protected your PC
+> Microsoft Defender SmartScreen prevented an unrecognized app from starting.
+
+Click the small **More info** link, then the **Run anyway** button that
+appears. After the first successful install, SmartScreen learns to trust
+the binary and won't prompt again for that version. This is expected for
+any unsigned app and does not mean the installer is corrupted.
+
+## Linux: AppImage won't launch
+
+Two common gotchas on a fresh download:
+
+1. **Mark it executable.** Browsers strip the executable bit on download:
+
+   ```bash
+   chmod +x "LaTeX Studio_*.AppImage"
+   ```
+
+2. **Install FUSE 2.** Ubuntu 22.04+, Debian 12+, and Fedora 38+ no
+   longer ship `libfuse2` by default. Without it AppImages fail with
+   `dlopen(): error loading libfuse.so.2`:
+
+   ```bash
+   # Debian / Ubuntu
+   sudo apt install libfuse2
+   # Fedora
+   sudo dnf install fuse-libs
+   ```
+
+If you prefer to avoid both issues, install the `.deb` package on
+Debian/Ubuntu instead — it integrates with the system package manager
+and has no FUSE requirement.
+
 ## Auto-update
 
 Tagged GitHub releases automatically reach existing installs through Tauri's
