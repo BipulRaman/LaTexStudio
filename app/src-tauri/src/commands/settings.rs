@@ -12,6 +12,10 @@ pub struct Settings {
     pub engine: String,               // "tectonic" (default) | "latexmk" | "pdflatex" | "xelatex" | "lualatex"
     #[serde(rename = "buildOnSave")]
     pub build_on_save: bool,
+    /// Optional in the on-disk schema so older settings files keep loading.
+    /// When the JSON omits this field we fall back to `true` (auto-save on).
+    #[serde(rename = "autoSave", default = "default_auto_save")]
+    pub auto_save: bool,
     #[serde(rename = "spellLang")]
     pub spell_lang: String, // e.g. "en_US"
     #[serde(rename = "fontSize")]
@@ -22,12 +26,17 @@ pub struct Settings {
     pub word_wrap: bool,
 }
 
+fn default_auto_save() -> bool {
+    true
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Self {
             theme: "light".into(),
             engine: "tectonic".into(),
             build_on_save: true,
+            auto_save: true,
             spell_lang: "en_US".into(),
             font_size: 14,
             tab_size: 2,

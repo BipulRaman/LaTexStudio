@@ -42,6 +42,8 @@ const PdfViewer = lazy(() =>
   import("./components/PdfViewer/Viewer").then((m) => ({ default: m.PdfViewer })),
 );
 import { CommandPalette, type PaletteCommand } from "./components/CommandPalette";
+import { EditorToolbar, type SnippetKind } from "./editor/EditorToolbar";
+import { SnippetPicker } from "./editor/SnippetPicker";
 import { ToastHost } from "./components/Toast/ToastHost";
 import { TectonicInstaller } from "./components/TectonicInstaller";
 import { AboutDialog } from "./components/AboutDialog";
@@ -78,6 +80,7 @@ function App() {
   const [engine, setEngine] = useState<Engine>("tectonic");
   const [availableEngines, setAvailableEngines] = useState<Engine[]>([]);
   const [buildOnSave, setBuildOnSave] = useState<boolean>(true);
+  const [autoSave, setAutoSave] = useState<boolean>(true);
   const [spellLang, setSpellLang] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<ThemeMode>("light");
   useThemeEffect(theme);
@@ -106,6 +109,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState<"files" | "outline">("files");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [snippetKind, setSnippetKind] = useState<SnippetKind | null>(null);
   const [showSidebar, setShowSidebar] = useState<boolean>(() => {
     const v = localStorage.getItem("layout:showSidebar");
     return v === null ? true : v === "1";
@@ -202,6 +206,9 @@ function App() {
         if (cancelled) return;
         setEngine(s.engine);
         setBuildOnSave(s.buildOnSave);
+        // `autoSave` was added later; tolerate missing field by treating it
+        // as "on", matching the Rust default.
+        setAutoSave(s.autoSave ?? true);
         if (s.theme === "dark" || s.theme === "light" || s.theme === "system") {
           setTheme(s.theme);
         }
@@ -221,6 +228,7 @@ function App() {
           theme,
           engine,
           buildOnSave,
+          autoSave,
           spellLang: spellLang ?? "en_US",
           fontSize: 14,
           tabSize: 2,
@@ -232,13 +240,14 @@ function App() {
             theme,
             engine,
             buildOnSave,
+            autoSave,
             spellLang: spellLang ?? current.spellLang,
           }),
         )
         .catch(() => {});
     }, 300);
     return () => window.clearTimeout(t);
-  }, [engine, buildOnSave, spellLang, theme]);
+  }, [engine, buildOnSave, autoSave, spellLang, theme]);
 
   // Rebuild the native menu whenever check-mark / enable state changes.
   useEffect(() => {
@@ -473,10 +482,10 @@ function App() {
       await fsApi.writeFile(path, activeDoc.contents);
       setDoc({ ...activeDoc, path, dirty: false });
       setStatus(`Saved ${path}`);
-      if (buildOnSave) {
-        const target = rootDoc ?? path;
-        void runBuild(target);
-      }
+      // NOTE: builds are no longer triggered inline here. The dedicated
+      // debounced-build effect below picks up the saved content and runs
+      // (at most) one build per editing burst, which keeps live preview
+      // responsive without thrashing the LaTeX engine on every keystroke.
     } catch (e: unknown) {
       setStatus(`Save failed: ${(e as Error).message}`);
     }
@@ -594,6 +603,59 @@ function App() {
   const onEditorSave = useCallback(() => {
     void handleSaveRef.current();
   }, []);
+
+  // Debounced auto-save. Runs whenever the document buffer changes and the
+  // doc is *both* dirty and bound to a real path on disk — untitled buffers
+  // are never silently written (that would surprise the user with a Save-As
+  // dialog while they're typing).
+  useEffect(() => {
+    if (!autoSave) return;
+    if (!activeDoc?.path || !activeDoc.dirty) return;
+    const t = window.setTimeout(() => {
+      void handleSaveRef.current();
+    }, 1000);
+    return () => window.clearTimeout(t);
+  }, [autoSave, activeDoc?.path, activeDoc?.dirty, activeDoc?.contents]);
+
+  // Debounced "live build" — reacts to *saved* content (dirty === false) so
+  // it only runs once per editing burst, not on every keystroke. If a build
+  // is already running when the timer fires we cancel it first so the
+  // engine doesn't pile up jobs; and we skip the run entirely when the
+  // saved content is identical to the last successfully-built content.
+  const lastBuiltRef = useRef<{ path: string; content: string } | null>(null);
+  useEffect(() => {
+    if (!buildOnSave) return;
+    if (!activeDoc?.path || activeDoc.dirty) return;
+    const target = rootDoc ?? activeDoc.path;
+    if (!isTexPath(target)) return;
+    const last = lastBuiltRef.current;
+    if (last && last.path === activeDoc.path && last.content === activeDoc.contents) {
+      return;
+    }
+    const t = window.setTimeout(async () => {
+      // Cancel any in-flight build first so we don't queue.
+      if (useBuild.getState().phase === "running") {
+        try {
+          await buildApi.cancel();
+        } catch {
+          /* ignore — the cancel race is harmless */
+        }
+      }
+      lastBuiltRef.current = {
+        path: activeDoc.path!,
+        content: activeDoc.contents,
+      };
+      void runBuild(target);
+    }, 400);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    buildOnSave,
+    activeDoc?.path,
+    activeDoc?.dirty,
+    activeDoc?.contents,
+    rootDoc,
+  ]);
 
   // Global Ctrl/Cmd+S as a safety net when the editor isn't focused.
   useEffect(() => {
@@ -751,6 +813,12 @@ function App() {
         label: `${buildOnSave ? "Disable" : "Enable"} build on save`,
         run: () => setBuildOnSave((v) => !v),
       },
+      {
+        id: "file.toggleAutoSave",
+        category: "File",
+        label: `${autoSave ? "Disable" : "Enable"} auto-save`,
+        run: () => setAutoSave((v) => !v),
+      },
       ...(["latexmk", "pdflatex", "xelatex", "lualatex", "tectonic"] as const).map((e) => ({
         id: `engine.${e}`,
         category: "Engine",
@@ -802,7 +870,7 @@ function App() {
         run: () => setTheme(t),
       })),
     ],
-    [buildOnSave, availableEngines],
+    [buildOnSave, autoSave, availableEngines],
   );
 
   const menus: TopMenu[] = useMemo(() => {
@@ -1012,6 +1080,12 @@ function App() {
             checked: buildOnSave,
             onClick: () => setBuildOnSave((v) => !v),
           },
+          {
+            kind: "item",
+            label: "&Auto-save",
+            checked: autoSave,
+            onClick: () => setAutoSave((v) => !v),
+          },
           { kind: "separator" },
           {
             kind: "submenu",
@@ -1101,6 +1175,7 @@ function App() {
     theme,
     engine,
     buildOnSave,
+    autoSave,
     buildPhase,
     version,
     availableEngines,
@@ -1227,14 +1302,20 @@ function App() {
               onClose={handleCloseDoc}
             />
             {activeDoc ? (
-              <LatexEditor
-                ref={editorRef}
-                value={activeDoc.contents}
-                onChange={updateContents}
-                onSave={onEditorSave}
-                onSyncRequest={handleForwardSync}
-                spellLang={spellLang}
-              />
+              <>
+                <EditorToolbar
+                  editor={editorRef}
+                  onPickSnippet={(k) => setSnippetKind(k)}
+                />
+                <LatexEditor
+                  ref={editorRef}
+                  value={activeDoc.contents}
+                  onChange={updateContents}
+                  onSave={onEditorSave}
+                  onSyncRequest={handleForwardSync}
+                  spellLang={spellLang}
+                />
+              </>
             ) : (
               <EmptyState
                 onNewFile={handleNewFile}
@@ -1328,6 +1409,12 @@ function App() {
           <span className="hidden md:inline ml-1">⌘P</span>
         </StatusBtn>
         <span className="px-2" title="Spellcheck">{spellLang ? `spell: ${spellLang}` : "spell: off"}</span>
+        <span
+          className={`px-2 ${autoSave ? "text-fg" : "text-fg-subtle"}`}
+          title={`Auto-save is ${autoSave ? "on (1s after typing)" : "off"} — toggle in File menu`}
+        >
+          auto-save: {autoSave ? "on" : "off"}
+        </span>
         <span className="px-2" title="App version">v{version}</span>
       </footer>
 
@@ -1340,6 +1427,15 @@ function App() {
         open={aboutOpen}
         onClose={() => setAboutOpen(false)}
         version={version}
+      />
+      <SnippetPicker
+        kind={snippetKind}
+        onClose={() => setSnippetKind(null)}
+        onInsert={(text) => {
+          editorRef.current?.insert(text);
+          editorRef.current?.focus();
+          setSnippetKind(null);
+        }}
       />
       <TectonicInstaller
         open={tectonicOpen}
