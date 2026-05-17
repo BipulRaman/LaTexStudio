@@ -97,6 +97,15 @@ macOS/Linux).
 Last verified Windows build: MSI ≈ 9.4 MB, NSIS ≈ 6.4 MB, standalone exe
 ≈ 26 MB.
 
+## Auto-update
+
+Tagged GitHub releases automatically reach existing installs through Tauri's
+built-in updater. The release pipeline signs every installer with an
+Ed25519 key so the in-app updater can verify the source.
+
+One-time setup of the signing keypair is required on a fresh fork — see
+[docs/auto-update-setup.md](docs/auto-update-setup.md).
+
 ## Enable spellcheck
 
 LaTeX Studio ships without dictionaries by default. Drop a matching pair of
