@@ -6,7 +6,7 @@
     <title>LaTeX Studio — A modern desktop LaTeX editor</title>
     <meta
       name="description"
-      content="LaTeX Studio is a fast, distraction-free desktop LaTeX editor for Windows, macOS and Linux — with built-in PDF preview, SyncTeX, outline navigation, spellcheck, and one-click Tectonic install. Local-first, no telemetry, MIT licensed."
+      content="LaTeX Studio is a fast, distraction-free desktop LaTeX editor for Windows, macOS and Linux — with auto-save, live PDF preview, SyncTeX, a one-click formatting toolbar, outline navigation, spellcheck, polished light &amp; dark themes, and one-click Tectonic install. Local-first, no telemetry, MIT licensed."
     />
     <meta name="author" content="Bipul Raman" />
     <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
@@ -15,7 +15,7 @@
     <meta property="og:title" content="LaTeX Studio — A modern desktop LaTeX editor" />
     <meta
       property="og:description"
-      content="Fast, distraction-free desktop LaTeX editor with built-in PDF preview, SyncTeX, outline, and one-click Tectonic install. Local-first, MIT licensed."
+      content="Fast, distraction-free desktop LaTeX editor with auto-save, live PDF preview, SyncTeX, a one-click formatting toolbar, light &amp; dark themes, and one-click Tectonic install. Local-first, MIT licensed."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./Screenshot.jpg" />
@@ -333,9 +333,9 @@
 
           <p class="mt-6 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed" style="color: var(--fg-muted)">
             LaTeX Studio is a modern, native editor for writing and compiling LaTeX
-            on Windows, macOS and Linux — with a built-in PDF preview, SyncTeX,
-            outline view and one-click Tectonic install. Local-first, no accounts,
-            no telemetry.
+            on Windows, macOS and Linux — with auto-save, live PDF preview, SyncTeX,
+            a one-click formatting toolbar, polished light &amp; dark themes, and
+            one-click Tectonic install. Local-first, no accounts, no telemetry.
           </p>
 
           <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -361,13 +361,7 @@
 
         <div class="max-w-7xl mx-auto px-6 pb-20 md:pb-28">
           <div class="tilt-wrap">
-            <div id="heroShot" class="tilt relative rounded-xl overflow-hidden ring-soft ring-accent">
-              <div class="hidden sm:flex items-center gap-1.5 px-4 h-9 border-b hairline" style="background: var(--bg-elev)">
-                <span class="h-3 w-3 rounded-full" style="background:#ff5f57"></span>
-                <span class="h-3 w-3 rounded-full" style="background:#febc2e"></span>
-                <span class="h-3 w-3 rounded-full" style="background:#28c840"></span>
-                <span class="ml-3 text-xs font-mono" style="color: var(--fg-subtle)">latex-studio · untitled.tex</span>
-              </div>
+            <div id="heroShot" class="tilt relative rounded-xl overflow-hidden">
               <img src="./Screenshot.jpg"
                    alt="Screenshot of LaTeX Studio showing the outline pane, source editor, and live PDF preview"
                    class="w-full block" loading="eager" />
@@ -424,8 +418,10 @@
             </div>
             <h3 class="font-semibold">Live PDF preview</h3>
             <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
-              A native PDF.js viewer sits next to your source. Zoom, fit-width,
-              page indicator — and the page reloads automatically after every build.
+              A native PDF.js viewer sits next to your source. Zoom, fit-width
+              and page indicator built in — and the page reloads automatically
+              after every build. Click any <code class="font-mono">.pdf</code>
+              in the sidebar to open it directly in the viewer.
             </p>
           </article>
 
@@ -499,8 +495,9 @@
             </div>
             <h3 class="font-semibold">File-system watcher</h3>
             <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
-              External edits to your source folder are picked up instantly.
-              Builds can re-trigger on save so the PDF stays current as you write.
+              External edits to your source folder are picked up instantly,
+              so generated PDFs and content changed by other tools refresh
+              without a manual reload.
             </p>
           </article>
 
@@ -513,6 +510,47 @@
             <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
               Your documents never leave your machine. No analytics, no
               accounts, no network calls — except when you ask for Tectonic.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h3 class="font-semibold">Auto-save &amp; live build</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              Edits are persisted to disk a second after you stop typing, and the
+              PDF rebuilds shortly after. A smart debounce cancels in-flight builds
+              and skips re-runs when the saved content hasn't changed.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            </div>
+            <h3 class="font-semibold">Formatting toolbar</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              One-click buttons for bold, italic, sections, lists, math, links,
+              images and tables — with a snippet picker for parameterised
+              inserts. Tooltips show the LaTeX each button emits, so
+              non-experts can ship a clean document on day one.
+            </p>
+          </article>
+
+          <article class="surface shadow-card rounded-xl p-6">
+            <div class="h-10 w-10 rounded-lg grid place-items-center mb-5"
+                 style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </div>
+            <h3 class="font-semibold">Polished light &amp; dark themes</h3>
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
+              First-class light and dark modes with theme-aware syntax
+              highlighting — saturated, high-contrast on white; soft pastels
+              on a dark background. Follow the OS, or pin one from
+              <em>View → Theme</em>.
             </p>
           </article>
         </div>
@@ -545,11 +583,12 @@
           <li class="relative surface shadow-card rounded-xl p-6">
             <div class="absolute -top-3 left-6 h-6 px-2 rounded-full text-[11px] font-mono uppercase tracking-wider flex items-center"
                  style="background: var(--accent); color: white">Step 02</div>
-            <h3 class="mt-3 font-semibold">Build</h3>
+            <h3 class="mt-3 font-semibold">Write</h3>
             <p class="mt-2 text-sm leading-relaxed" style="color: var(--fg-muted)">
-              Press <span class="kbd">F5</span> to compile with your chosen
-              engine. Errors and warnings appear inline with line numbers; the
-              build is cancellable mid-run.
+              Auto-save keeps your work persisted in the background and the PDF
+              rebuilds on its own shortly after you stop typing. Hit
+              <span class="kbd">F5</span> any time to force a build; errors and
+              warnings appear inline with line numbers and the run is cancellable.
             </p>
           </li>
           <li class="relative surface shadow-card rounded-xl p-6">
@@ -591,6 +630,7 @@
               <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Bring any engine: Tectonic, latexmk, MiKTeX, TeX Live</span></li>
               <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>MIT licensed, no telemetry, no account</span></li>
               <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Polished dark + light themes</span></li>
+              <li class="check-row" style="color: var(--fg-muted)"><svg class="h-4 w-4 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981"><path d="M20 6 9 17l-5-5"/></svg><span>Auto-save &amp; live preview built in</span></li>
             </ul>
           </div>
 
