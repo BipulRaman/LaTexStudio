@@ -33,6 +33,7 @@
     "active": true,
     "targets": "all",
     "resources": ["resources/**/*"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -40,5 +41,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/BipulRaman/LaTexStudio/releases/latest/download/latest.json"
+      ],
+      "pubkey": "REPLACE_ME_WITH_PUBLIC_KEY_FROM_TAURI_SIGNER_GENERATE",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

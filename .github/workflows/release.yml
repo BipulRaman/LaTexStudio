@@ -69,6 +69,43 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Stamp version from tag (single source of truth)
+        shell: bash
+        run: |
+          # Strip the leading "v" from the tag (v1.0.0 -> 1.0.0). The tag is
+          # the only place we declare a version; package.json / Cargo.toml /
+          # tauri.conf.json are rewritten here so every artifact carries the
+          # tag's version.
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${TAG#v}"
+          echo "Stamping version $VERSION (from tag $TAG)"
+
+          # tauri.conf.json — controls bundle filenames (e.g. _1.0.0_x64.msi).
+          node -e "const fs=require('fs');const p='app/src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p));j.version='${VERSION}';fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
+
+          # package.json — controls the npm package's reported version.
+          node -e "const fs=require('fs');const p='app/package.json';const j=JSON.parse(fs.readFileSync(p));j.version='${VERSION}';fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
+
+          # Cargo.toml — controls the Rust crate version (env!("CARGO_PKG_VERSION")).
+          # Only touch the [package].version line, not dependency versions.
+          python - <<EOF
+          import re, pathlib
+          p = pathlib.Path('app/src-tauri/Cargo.toml')
+          text = p.read_text()
+          new = re.sub(
+              r'(?m)^(\[package\][\s\S]*?^version\s*=\s*)"[^"]*"',
+              r'\1"${VERSION}"',
+              text,
+              count=1,
+          )
+          p.write_text(new)
+          EOF
+
+          echo "--- Stamped files ---"
+          grep -m1 '"version"' app/src-tauri/tauri.conf.json
+          grep -m1 '"version"' app/package.json
+          grep -m1 '^version' app/src-tauri/Cargo.toml
+
       - name: Install Linux build dependencies
         if: matrix.platform.os == 'ubuntu-22.04'
         run: |
@@ -116,6 +153,14 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing — required for the Tauri auto-updater. Generate
+          # the keypair once with `npm run tauri signer generate -- -w ./key`,
+          # put the PRIVATE key (the file contents) into the GitHub secret
+          # TAURI_SIGNING_PRIVATE_KEY and the passphrase you chose into
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD. Put the public key into
+          # tauri.conf.json → plugins.updater.pubkey.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: app
           tagName: ${{ steps.tag.outputs.tag }}
@@ -123,4 +168,8 @@ jobs:
           releaseBody: 'Automated build for ${{ steps.tag.outputs.tag }}. See assets below for installers.'
           releaseDraft: false
           prerelease: false
+          # Tells tauri-action to also publish the updater manifest
+          # (`latest.json`) alongside the installers so the in-app updater
+          # can find new versions.
+          updaterJsonPreferNsis: true
           args: ${{ matrix.platform.args }}

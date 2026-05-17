@@ -9,6 +9,9 @@
     "opener:allow-open-path",
     "dialog:default",
     "fs:default",
+    "updater:default",
+    "process:default",
+    "process:allow-restart",
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "**" }]

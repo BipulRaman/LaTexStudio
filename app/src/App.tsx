@@ -22,7 +22,7 @@ import {
 import { fsApi } from "./api/fs";
 import { dialogApi } from "./api/dialog";
 import { recentsApi } from "./api/recents";
-import { buildApi, type Engine } from "./api/build";
+import { checkForUpdate, downloadAndInstallUpdate } from "./api/updater";import { buildApi, type Engine } from "./api/build";
 import { watcherApi, workspaceApi } from "./api/watcher";
 import { indexApi } from "./api/index";
 import { synctexApi } from "./api/synctex";
@@ -47,8 +47,7 @@ import { TectonicInstaller } from "./components/TectonicInstaller";
 import { MenuBar, type TopMenu } from "./components/MenuBar/MenuBar";
 import type { MenuEntry as MenuEntryAlias } from "./components/MenuBar/MenuBar";
 import { Splitter } from "./components/Splitter";
-import type { RecentItem } from "./api/recents";
-import { toast } from "./state/toasts";
+import type { RecentItem } from "./api/recents";import { toast } from "./state/toasts";
 import { useThemeEffect, type ThemeMode } from "./state/theme";
 
 const STARTER_DOC = `\\documentclass{article}
@@ -165,6 +164,20 @@ function App() {
   useEffect(() => {
     void probeAndRecord();
   }, [probeAndRecord]);
+
+  // Silent auto-check for app updates a few seconds after boot. Notify only if
+  // an update is actually available — a failed check (e.g. offline) is silent.
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const info = await checkForUpdate();
+      if (!info.available || !info.version) return;
+      toast.info(
+        `Update available: v${info.version} — open Help › Check for Updates to install`,
+        8000,
+      );
+    }, 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   // Track the latest engine value so the probe effect can read it without re-running.
   const useEngineRef = useRef(engine);
@@ -374,6 +387,38 @@ function App() {
     }
     setDoc(null);
     setStatus("Closed");
+  }
+
+  async function handleCheckForUpdates() {
+    setStatus("Checking for updates…");
+    const info = await checkForUpdate();
+    if (!info.available || !info.version) {
+      setStatus("Up to date");
+      toast.success(`You're on the latest version (v${version}).`, 4000);
+      return;
+    }
+    const ok = window.confirm(
+      `Update available: v${info.version}\n\nDownload and install now? The app will restart automatically.` +
+        (info.notes ? `\n\n— Release notes —\n${info.notes.slice(0, 600)}` : ""),
+    );
+    if (!ok) {
+      setStatus(`Update v${info.version} available`);
+      return;
+    }
+    setStatus(`Downloading update v${info.version}…`);
+    try {
+      await downloadAndInstallUpdate((d, t) => {
+        if (t) {
+          const pct = Math.min(100, Math.round((d / t) * 100));
+          setStatus(`Downloading update v${info.version}… ${pct}%`);
+        }
+      });
+      // relaunch() takes over from here; nothing to do.
+    } catch (e) {
+      const msg = (e as Error).message;
+      setStatus(`Update failed: ${msg}`);
+      toast.error(`Update failed: ${msg}`, null);
+    }
   }
 
   async function handleOpenFolder() {
@@ -697,6 +742,12 @@ function App() {
         },
       },
       {
+        id: "app.checkForUpdates",
+        category: "Help",
+        label: "Check for updates…",
+        run: handleCheckForUpdates,
+      },
+      {
         id: "view.outline",
         category: "View",
         label: "Show outline",
@@ -992,6 +1043,11 @@ function App() {
               ),
           },
           { kind: "separator" },
+          {
+            kind: "item",
+            label: "Check for &Updates…",
+            onClick: handleCheckForUpdates,
+          },
           {
             kind: "item",
             label: "&About LaTeX Studio",

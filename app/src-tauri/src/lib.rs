@@ -37,6 +37,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(Arc::new(build::runner::BuildState::default()))
         .manage(Arc::new(watcher::WatcherState::default()))
         .manage(Arc::new(commands::spellcheck::SpellState::default()))
