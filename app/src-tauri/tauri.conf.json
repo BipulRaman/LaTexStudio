@@ -47,7 +47,7 @@
       "endpoints": [
         "https://github.com/BipulRaman/LaTexStudio/releases/latest/download/latest.json"
       ],
-      "pubkey": "REPLACE_ME_WITH_PUBLIC_KEY_FROM_TAURI_SIGNER_GENERATE",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlGMjVCODAyRDI5QzNGMEMKUldRTVA1elNBcmdsbi95YloxeThNODU0UXhrWVRhSzVsNDNoTm1ibWN2cEJXcDlZaC94T3Z5a0cK",
       "windows": {
         "installMode": "passive"
       }
