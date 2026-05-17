@@ -1,23 +1,28 @@
 name: Release Desktop Binaries
 
 # Build & publish Tauri desktop binaries.
-# Triggers ONLY on:
-#   - a Git tag matching v* being pushed (e.g. v0.1.0)
-#   - a GitHub Release being created/published from the UI or API
-#   - manual dispatch from the Actions tab
-# It does NOT run on pushes to main.
+# Fires exactly ONCE per release — when a GitHub Release is published from
+# the UI / API. Manual dispatch is also supported for ad-hoc rebuilds.
+#
+# Why only `release: published`?
+#   - `push: tags` AND `release: created` AND `release: published` would all
+#     fire when you click "Publish release" in the GitHub UI (the UI creates
+#     the tag, drafts the release, then publishes it). That produces three
+#     duplicate workflow runs racing to upload the same artifacts.
 on:
-  push:
-    tags:
-      - 'v*'
   release:
-    types: [created, published]
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
         description: 'Tag to build and publish (e.g. v0.1.0). A release will be created if missing.'
         required: true
         type: string
+
+# Prevent any future overlap (e.g. multiple manual dispatches) from racing.
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
